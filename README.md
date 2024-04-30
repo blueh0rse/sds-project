@@ -12,6 +12,10 @@ The project aims to simulate attacks on a network that resembles an enterprise e
 .
 ```
 
+## Requirements
+
+To be able to run this project you must use an Ubuntu 20.04 VM.
+
 ## Instructions
 
 1. Clone the repository
