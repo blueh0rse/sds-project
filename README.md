@@ -18,6 +18,8 @@ To be able to run this project you must use an Ubuntu 20.04 VM.
 
 ## Instructions
 
+### Setup
+
 1. Clone the repository
 
 ```bash
@@ -40,4 +42,22 @@ source .venv/bin/activate
 
 ```bash
 (.venv)$ pip install -r requirements.txt
+```
+
+5. Start the network using `mininet`
+
+```bash
+(.venv)$ sudo python3 setup/network.py
+```
+
+6. Start the controlet using `ryu`
+
+```bash
+(.venv)$ sudo ryu-manager --verbose ryu.app.example_switch_13
+```
+
+7. Test hosts can communicate
+
+```bash
+mininet> h1 ping h2 -c 3
 ```
