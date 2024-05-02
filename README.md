@@ -10,6 +10,19 @@ The project aims to simulate attacks on a network that resembles an enterprise e
 
 ```
 .
+├── config
+│   └── telegraf.conf
+├── LICENSE
+├── network
+│   └── topology.py
+├── README.md
+├── requirements.txt
+├── setup
+│   └── setup.sh
+└── tools
+    └── ryu
+
+5 directories, 6 files
 ```
 
 ## Requirements
