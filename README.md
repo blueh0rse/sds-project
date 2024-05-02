@@ -50,13 +50,30 @@ source .venv/bin/activate
 (.venv)$ sudo python3 setup/network.py
 ```
 
-6. Start the controlet using `ryu`
+6. Check network state
 
 ```bash
-(.venv)$ sudo ryu-manager --verbose ryu.app.example_switch_13
+mininet> net
+h1 h1-eth0:s1-eth1
+h2 h2-eth0:s1-eth2
+h3 h3-eth0:s1-eth3
+h4 h4-eth0:s1-eth5
+h5 h5-eth0:s2-eth2
+h6 h6-eth0:s2-eth3
+s1 lo:  s1-eth1:h1-eth0  s1-eth2:h2-eth0  s1-eth3:h3-eth0  s1-eth4:s2-eth1  s1-eth5:h4-eth0
+s2 lo:  s2-eth1:s1-eth4  s2-eth2:h5-eth0  s2-eth3:h6-eth0
+c0
 ```
 
-7. Test hosts can communicate
+### Network rules
+
+1. Start the controlet using `ryu`
+
+```bash
+(.venv)$ sudo ryu-manager --verbose tools/ryu/ryu/app/simple_monitor_13.py
+```
+
+2. Test hosts can communicate
 
 ```bash
 mininet> h1 ping h2 -c 3
