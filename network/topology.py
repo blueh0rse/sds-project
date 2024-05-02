@@ -5,17 +5,16 @@ from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def customTopology():
-    "Create a network from scratch using Open vSwitch."
-
     net = Mininet(controller=RemoteController, link=TCLink, switch=OVSSwitch)
 
     print("*** Creating nodes")
+
     # Controllers
     c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6633)
 
     # Switches
     s1 = net.addSwitch('s1')
-    s2 = net.addSwitch('s2')  # Assuming s2 is a load balancer
+    s2 = net.addSwitch('s2')
 
     # DMZ #1 Users
     h1 = net.addHost('h1', ip='10.0.0.1')
@@ -25,7 +24,7 @@ def customTopology():
     # DMZ #2 Active Directory
     h4 = net.addHost('h4', ip='10.0.0.4')
 
-    # Web Servers
+    # DMZ #3 Web Servers
     h5 = net.addHost('h5', ip='10.0.0.5')
     h6 = net.addHost('h6', ip='10.0.0.6')
 
