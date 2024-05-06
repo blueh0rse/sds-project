@@ -55,15 +55,26 @@ source .venv/bin/activate
 
 ```bash
 (.venv)$ pip install -r requirements.txt
+or
+(.venv)$ sudo python3 -m pip install -r requirements.txt
 ```
 
-5. Start the network using `mininet`
+5. Install required software
 
 ```bash
-(.venv)$ sudo python3 setup/network.py
+(.venv)$ chmod -R +x ./setup/
+(.venv)$ ./setup/setup.sh
 ```
 
-6. Check network state
+6. Start the network using `mininet`
+
+```bash
+(.venv)$ sudo python3 network/topology.py
+or
+(.venv)$ ./setup/init.sh
+```
+
+7. Check network state
 
 ```bash
 mininet> net
@@ -76,6 +87,12 @@ h6 h6-eth0:s2-eth3
 s1 lo:  s1-eth1:h1-eth0  s1-eth2:h2-eth0  s1-eth3:h3-eth0  s1-eth4:s2-eth1  s1-eth5:h4-eth0
 s2 lo:  s2-eth1:s1-eth4  s2-eth2:h5-eth0  s2-eth3:h6-eth0
 c0
+```
+
+8. Initialize Ryu and Snort
+
+```bash
+$ ./setup/config-network.sh
 ```
 
 ### Network rules
