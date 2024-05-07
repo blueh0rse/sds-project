@@ -71,7 +71,7 @@ class CustomSwitch(app_manager.RyuApp):
 
         print('alertmsg: %s' % msg.alertmsg[0].decode())
 
-        self.packet_print(msg.pkt)
+        # self.packet_print(msg.pkt)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):

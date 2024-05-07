@@ -37,6 +37,9 @@ To be able to run this project you must use an Ubuntu 20.04 VM.
 
 ```bash
 git clone https://github.com/blueh0rse/sds-project
+cd sds-project
+chmod -R +x ./setup/
+chmod -R +x ./scripts/
 ```
 
 2. Create a virtual environment
@@ -62,19 +65,24 @@ or
 5. Install required software
 
 ```bash
-(.venv)$ chmod -R +x ./setup/
 (.venv)$ ./setup/setup.sh
 ```
+
+5. 1. Manually install snort
+
+```bash
+(.venv)$ sudo apt install -y snort
+```
+> [!Important]
+> You must specify the interface `ens33`, or related, and the subnetwork `(10.0.0.0/16)`
 
 6. Start the network using `mininet`
 
 ```bash
-(.venv)$ sudo python3 network/topology.py
-or
-(.venv)$ ./setup/init.sh
+(.venv)$ ./setup/start-mininet.sh
 ```
 
-7. Check network state
+8. Check network state
 
 ```bash
 mininet> net
@@ -89,10 +97,10 @@ s2 lo:  s2-eth1:s1-eth4  s2-eth2:h5-eth0  s2-eth3:h6-eth0
 c0
 ```
 
-8. Initialize Ryu and Snort
+8. Configure the network and initialize Ryu and Snort
 
 ```bash
-$ ./setup/config-network.sh
+(.venv)$ ./setup/config-network.sh
 ```
 
 ### Network rules
@@ -108,3 +116,9 @@ $ ./setup/config-network.sh
 ```bash
 mininet> h1 ping h2 -c 3
 ```
+
+### TODO List
+- [ ] Configure [Custom Switch](/network/custom_switch.py) to monitor the network
+- [ ] Expand the rules of [Snort Rules](/config/SDS-project_SnortRules.rules)
+- [ ] Implement counter-measures of all the Snort's alerts
+- [ ] etc...

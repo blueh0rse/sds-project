@@ -1,1 +1,2 @@
 alert ICMP any any -> 10.0.0.5/32 any (msg:"Pinging...";sid:1100001;)
+alert icmp any any -> 10.0.0.6/32 any (msg:"ICMP flood"; sid:1100002; classtype:icmp-event; detection_filter:track by_dst, count 500, seconds 3;)

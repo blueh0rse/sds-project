@@ -40,13 +40,4 @@ sudo dpkg -i grafana_7.4.3_amd64.deb
 rm grafana_7.4.3_amd64.deb
 sudo systemctl start grafana-server
 
-# install snort
-cd $workdir/tmp
-sudo apt install -y snort
-sudo mv /etc/snort/snort.conf /etc/snort/snort.conf.bak
-sudo cp $workdir/config/snort.conf /etc/snort/snort.conf
-sudo cp $workdir/config/SDS-project_SnortRules.rules /etc/snort/rules/SDS-project_SnortRules.rules
-sudo ip link add name s1-snort type dummy
-sudo ip link set s1-snort up
-
 rm -r $workdir/tmp
