@@ -1,1 +1,1 @@
-alert icmp any any -> any any (msg:"Pinging...";sid:1100001;)
+alert ICMP any any -> 10.0.0.5/32 any (msg:"Pinging...";sid:1100001;)

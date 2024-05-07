@@ -1,3 +1,5 @@
 .venv/
+.vscode/
 tools/
 tmp/
+*/__pycache__/
