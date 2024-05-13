@@ -18,4 +18,4 @@ sudo snort -i snort-mirror -A unsock -l /tmp -c /etc/snort/snort.conf -q -D > /d
 
 # Start Ryu
 cd $workdir/tools/ryu/
-sudo ryu-manager $workdir/network/custom_switch.py
+sudo ryu-manager $workdir/network/dynamic_firewall.py
