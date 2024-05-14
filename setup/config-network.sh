@@ -14,7 +14,7 @@ sudo $workdir/scripts/add-port.sh s2 snort-mirror
 sudo $workdir/scripts/add-mirror.sh s2 snort snort-mirror
 sudo $workdir/scripts/add-traffic-to-mirror.sh snort s2-eth1 all
 
-sudo snort -i snort-mirror -A unsock -l /tmp -c /etc/snort/snort.conf -q -D > /dev/null 2>&1
+sudo snort -i s1-eth1 -A unsock -l /tmp -c /etc/snort/snort.conf -q -D > /dev/null 2>&1
 
 # Start Ryu
 cd $workdir/tools/ryu/

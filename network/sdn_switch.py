@@ -210,9 +210,9 @@ class DynamicFirewall(app_manager.RyuApp):
 
     @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)
     def _dump_alert(self, ev):
-        msg = ev.msg
+        msg = ev.msg.alertmsg[0].decode()
 
-        print('alertmsg: %s' % msg.alertmsg[0].decode())
+        print('alertmsg: %s' % msg)
 
         # self.packet_print(msg.pkt)
 
