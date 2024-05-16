@@ -19,19 +19,39 @@ from firewall_controller import FirewallController, SWITCHID_PATTERN, VLANID_PAT
 
 class FirewallRules():
 
-    RULES = [
-        {
+    RULES = {
+        1: {
             "dpid": "0000000000000001",
             "rules": [
-                '{"nw_src": "10.0.0.1/32","nw_dst": "10.0.0.2/32","nw_proto": "ICMP"}',
-                '{"nw_src": "10.0.0.1/32","nw_dst": "10.0.0.3/32","nw_proto": "ICMP"}',
-                '{"nw_src": "10.0.0.1/32","nw_dst": "10.0.0.4/32","nw_proto": "ICMP"}',
-                '{"nw_src": "10.0.0.2/32","nw_dst": "10.0.0.1/32","nw_proto": "ICMP"}',
-                '{"nw_src": "10.0.0.3/32","nw_dst": "10.0.0.1/32","nw_proto": "ICMP"}',
-                '{"nw_src": "10.0.0.4/32","nw_dst": "10.0.0.1/32","nw_proto": "ICMP"}'
+                # General ICMP rules
+                '{"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+
+                # Only h1 was access to pad
+                '{"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.2.0/24", "nw_dst": "10.0.1.1/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+
+                # pu1 access to ws1 and ws2
+                '{"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+
+                # General DENY
+                '{"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}'
+            ]
+        },
+        10: {
+            "dpid": "000000000000000a",
+            "rules": [
+                '{"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+
+                # General DENY
+                '{"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}'
             ]
         }
-    ]
+    }
+
+    SWITCHES_ID = [1, 10]
 
 class DynamicFirewall(app_manager.RyuApp):
 
@@ -49,9 +69,6 @@ class DynamicFirewall(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(DynamicFirewall, self).__init__(*args, **kwargs)
 
-        # logger configure
-        FirewallController.set_logger(self.logger)
-
         # Firewall configuration
         self.dpset = kwargs['dpset']
         self.waiters = {}
@@ -60,6 +77,9 @@ class DynamicFirewall(app_manager.RyuApp):
         self.data['waiters'] = self.waiters
 
         self.fwc = FirewallController(self.data)
+
+        # logger configure
+        self.fwc.set_logger(self.logger)
 
         # Snort configuration
         self.snort = kwargs['snortlib']
@@ -181,17 +201,17 @@ class DynamicFirewall(app_manager.RyuApp):
     @set_ev_cls(dpset.EventDP, dpset.DPSET_EV_DISPATCHER)
     def handler_datapath(self, ev):
         if ev.enter:
-            FirewallController.regist_ofs(ev.dp)
+            self.fwc.regist_ofs(ev.dp)
 
             fwID = ev.dp.id
-            if len(FirewallRules.RULES) >= fwID:
-                self.fwc.set_enable("", FirewallRules.RULES[fwID-1]["dpid"])
-                for rule in FirewallRules.RULES[fwID-1]["rules"]:
+            if fwID in FirewallRules.SWITCHES_ID:
+                self.fwc.set_enable("", FirewallRules.RULES[fwID]["dpid"])
+                for rule in FirewallRules.RULES[fwID]["rules"]:
                     body = json.dumps(str(rule))
                     res = Response(content_type='application/json', body=body)
-                    self.fwc.set_rule(res, FirewallRules.RULES[fwID-1]["dpid"])
+                    self.fwc.set_rule(res, FirewallRules.RULES[fwID]["dpid"])
         else:
-            FirewallController.unregist_ofs(ev.dp)
+            self.fwc.unregist_ofs(ev.dp)
 
     # for OpenFlow version1.0
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
@@ -205,7 +225,7 @@ class DynamicFirewall(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
-        FirewallController.packet_in_handler(ev.msg)
+        self.fwc.packet_in_handler(ev.msg)
         self.snort_packet_in_handler(ev.msg)
 
     @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)

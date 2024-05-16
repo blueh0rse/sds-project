@@ -13,35 +13,51 @@ def customTopology():
     c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6633)
 
     # Switches
-    s1 = net.addSwitch('s1')
-    s2 = net.addSwitch('s2')
+    sLoadBalancer = net.addSwitch('s10')
+    sGeneral = net.addSwitch('s1')
 
-    # DMZ #1 Users
-    h1 = net.addHost('h1', ip='10.0.0.1')
-    h2 = net.addHost('h2', ip='10.0.0.2')
-    h3 = net.addHost('h3', ip='10.0.0.3')
+    # Users
+    h1 = net.addHost('h1', ip='10.0.1.1/16')
+    h2 = net.addHost('h2', ip='10.0.1.2/16')
+    h3 = net.addHost('h3', ip='10.0.1.3/16')
 
-    # DMZ #2 Active Directory
-    h4 = net.addHost('h4', ip='10.0.0.4')
+    # Active Directory
+    pad = net.addHost('pad', ip='10.0.2.1/16')
 
     # DMZ #3 Web Servers
-    h5 = net.addHost('h5', ip='10.0.0.5')
-    h6 = net.addHost('h6', ip='10.0.0.6')
+    ws1 = net.addHost('ws1', ip='10.0.3.1/16')
+    ws2 = net.addHost('ws2', ip='10.0.3.2/16')
+
+    # Public Users
+    pu1 = net.addHost('pu1', ip='10.0.255.1/16')
 
     print("*** Creating links")
-    net.addLink(h1, s1)
-    net.addLink(h2, s1)
-    net.addLink(h3, s1)
-    net.addLink(s1, s2)
-    net.addLink(h4, s1)
-    net.addLink(s2, h5)
-    net.addLink(s2, h6)
+    net.addLink(h1, sGeneral)
+    net.addLink(h2, sGeneral)
+    net.addLink(h3, sGeneral)
+
+    net.addLink(pad, sGeneral)
+
+    net.addLink(pu1, sGeneral)
+
+    net.addLink(ws1, sLoadBalancer)
+    net.addLink(ws2, sLoadBalancer)
+
+    net.addLink(sGeneral, sLoadBalancer)
 
     print("*** Starting network")
     net.build()
     c0.start()
-    s1.start([c0])
-    s2.start([c0])
+    sGeneral.start([c0])
+    sLoadBalancer.start([c0])
+
+    h1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    h2.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    h3.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    pad.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    pu1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    ws1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    ws2.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
 
     print("*** Running CLI")
     CLI(net)

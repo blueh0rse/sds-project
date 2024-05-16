@@ -115,27 +115,25 @@ class FirewallController():
         hdlr.setFormatter(logging.Formatter(fmt_str))
         cls._LOGGER.addHandler(hdlr)
 
-    @staticmethod
-    def regist_ofs(dp):
+    def regist_ofs(self, dp):
         dpid_str = dpid_lib.dpid_to_str(dp.id)
         try:
             f_ofs = Firewall(dp)
         except OFPUnknownVersion as message:
-            FirewallController._LOGGER.info('dpid=%s: %s', dpid_str, message)
+            self._LOGGER.info('dpid=%s: %s', dpid_str, message)
             return
 
-        FirewallController._OFS_LIST.setdefault(dp.id, f_ofs)
+        self._OFS_LIST.setdefault(dp.id, f_ofs)
 
         f_ofs.set_disable_flow()
         f_ofs.set_arp_flow()
         f_ofs.set_log_enable()
-        FirewallController._LOGGER.info('dpid=%s: Join as firewall.', dpid_str)
+        self._LOGGER.info('dpid=%s: Join as firewall.', dpid_str)
 
-    @staticmethod
-    def unregist_ofs(dp):
-        if dp.id in FirewallController._OFS_LIST:
-            del FirewallController._OFS_LIST[dp.id]
-            FirewallController._LOGGER.info('dpid=%s: Leave firewall.', dpid_lib.dpid_to_str(dp.id))
+    def unregist_ofs(self, dp):
+        if dp.id in self._OFS_LIST:
+            del self._OFS_LIST[dp.id]
+            self._LOGGER.info('dpid=%s: Leave firewall.', dpid_lib.dpid_to_str(dp.id))
 
     # GET /firewall/module/status
     def get_status(self, req, **_kwargs):
