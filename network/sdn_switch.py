@@ -30,6 +30,8 @@ class FirewallRules():
                 # Only h1 was access to pad
                 '{"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
                 '{"nw_src": "10.0.2.0/24", "nw_dst": "10.0.1.1/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": "69"}',
+                '{"nw_src": "10.0.2.1/32", "nw_dst": "10.0.1.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": "69"}',
 
                 # pu1 access to ws1 and ws2
                 '{"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
@@ -59,7 +61,7 @@ class DynamicFirewall(app_manager.RyuApp):
                     ofproto_v1_2.OFP_VERSION,
                     ofproto_v1_3.OFP_VERSION]
 
-    _CONTEXTS = { 
+    _CONTEXTS = {
         'dpset': dpset.DPSet,
         'snortlib': snortlib.SnortLib
     }

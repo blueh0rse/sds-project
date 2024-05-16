@@ -9,3 +9,4 @@ log TCP any any -> 10.0.0.5/32 80 (msg:"logging HTTP"; sid:1100008; classtype:tc
 log TCP any any -> 10.0.0.6/32 80 (msg:"logging HTTP"; sid:1100009; classtype:tcp-connection;)
 alert TCP any any -> 10.0.0.5/32 80 (msg:"TCP flood"; sid:1100010; classtype:tcp-connection; detection_filter:track by_dst, count 100, seconds 10;)
 alert TCP any any -> 10.0.0.6/32 80 (msg:"TCP flood"; sid:1100011; classtype:tcp-connection; detection_filter:track by_dst, count 100, seconds 10;)
+alert ICMP any any -> 255.255.255.255/32 any (msg:"failed SSH connection"; sid:1100012; classtype:icmp-event;)
