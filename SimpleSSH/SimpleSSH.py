@@ -1,8 +1,6 @@
 import socket
 from threading import Thread
-import struct
 import sys
-import os
 
 VALID_CREDS = {
     "admin": "admin",
@@ -18,9 +16,6 @@ def notify_wrong_login(ip_owner):
     # Set the IP header
     raw_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
 
-    # Set the destination IP address
-    dest_ip = "10.0.1.1"
-
     ip_header = b'\x45\x00\x00\x1c' # Version, IHL, Type of Service | Total Length
     ip_header += b'\xab\xcd\x00\x00' # Identification | Flags, Fragment Offset
     ip_header += b'\x40\x01\x6b\xd8' # TTL, Protocol | Header Checksum
@@ -33,7 +28,7 @@ def notify_wrong_login(ip_owner):
     icmp_packet = ip_header + icmp_header
 
     # Send the ICMP packet
-    raw_socket.sendto(icmp_packet, (dest_ip, 0))
+    raw_socket.sendto(icmp_packet, (ip_owner, 0))
     raw_socket.close()
 
 def handle_client(client_socket):

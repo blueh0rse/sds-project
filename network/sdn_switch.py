@@ -1,3 +1,5 @@
+import time
+import array
 import json
 
 from ryu.app.wsgi import Response
@@ -13,7 +15,8 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ipv4
 from ryu.lib.packet import icmp
-from ryu.lib import snortlib
+from ryu.lib import hub, alert, snortlib
+from threading import Thread
 
 from firewall_controller import FirewallController, SWITCHID_PATTERN, VLANID_PATTERN
 
@@ -24,33 +27,60 @@ class FirewallRules():
             "dpid": "0000000000000001",
             "rules": [
                 # General ICMP rules
-                '{"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
 
                 # Only h1 was access to pad
-                '{"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.2.0/24", "nw_dst": "10.0.1.1/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.2.1/32", "nw_dst": "10.0.1.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": "69"}',
+                {"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.1.1/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.1/32", "nw_dst": "10.0.1.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
                 # pu1 access to ws1 and ws2
-                '{"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
 
                 # General DENY
-                '{"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}'
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
             ]
         },
         10: {
             "dpid": "000000000000000a",
             "rules": [
-                '{"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
-                '{"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": "69"}',
+                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
 
                 # General DENY
-                '{"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}'
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
             ]
         }
+    }
+
+    IP_TO_MAIN_SWITCH = {
+        "10.0.1.1": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.1.2": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.1.3": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.2.1": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.3.1": {
+            "int": 10,
+            "dpid": "000000000000000a"
+        },
+        "10.0.3.2": {
+            "int": 10,
+            "dpid": "000000000000000a"
+        },
     }
 
     SWITCHES_ID = [1, 10]
@@ -77,6 +107,7 @@ class DynamicFirewall(app_manager.RyuApp):
         self.data = {}
         self.data['dpset'] = self.dpset
         self.data['waiters'] = self.waiters
+        self.banned_rules = {}
 
         self.fwc = FirewallController(self.data)
 
@@ -104,11 +135,8 @@ class DynamicFirewall(app_manager.RyuApp):
         dp = msg.datapath
 
         if dp.id not in self.waiters:
-            return
-        if msg.xid not in self.waiters[dp.id]:
-            return
-        lock, msgs = self.waiters[dp.id][msg.xid]
-        msgs.append(msg)
+            self.waiters[dp.id] = None
+        self.waiters[dp.id] = (hub.Event(), [msg])
 
         flags = 0
         if dp.ofproto.OFP_VERSION == ofproto_v1_0.OFP_VERSION or \
@@ -117,10 +145,12 @@ class DynamicFirewall(app_manager.RyuApp):
         elif dp.ofproto.OFP_VERSION == ofproto_v1_3.OFP_VERSION:
             flags = dp.ofproto.OFPMPF_REPLY_MORE
 
+        self.data['dpset'] = self.dpset
+        self.data['waiters'] = self.waiters
+        self.fwc.update(self.data)
+
         if msg.flags & flags:
             return
-        del self.waiters[dp.id][msg.xid]
-        lock.set()
 
     # Used with Snort
     def packet_print(self, pkt):
@@ -196,6 +226,82 @@ class DynamicFirewall(app_manager.RyuApp):
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
 
+    ## Getters
+    def get_snort_sid(self, string):
+        return str(string.split(" --- ")[1].rstrip('\x00')).strip()
+
+    def get_src_ip(self, pkt):
+        pkt = packet.Packet(array.array('B', pkt))
+        return pkt.get_protocol(ipv4.ipv4).src
+
+    def get_dst_ip(self, pkt):
+        pkt = packet.Packet(array.array('B', pkt))
+        return pkt.get_protocol(ipv4.ipv4).dst
+
+    def get_response(self, res):
+        tmp = json.loads(res.body.decode())
+        if tmp[0]:
+            if tmp[0][1]:
+                try:
+                    return tmp[0][1][0]
+                except:
+                    return tmp[0][1]
+
+    def get_rule_id_from_banning(self, res):
+        rule = (self.get_response(res)["details"].split(" : ")[1]).strip()
+        res = {}
+        res["rule_id"] = rule.split("=")[1]
+        return json.dumps(res)
+
+    def ban_ip(self, ip, duration=5):
+        fwID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["int"]
+        dpID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["dpid"]
+        rule = {"nw_src": ip, "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY", "priority": 100}
+
+        if fwID not in self.banned_rules:
+            self.banned_rules[fwID] = {}
+        if str(rule) in self.banned_rules[fwID]:
+            return
+
+        print("////////////////")
+        print("Banning IP: %s" % ip)
+
+        res = self.fwc.set_rule(Response(content_type='application/json', body=json.dumps(rule)), dpID)
+        ruleID = json.loads(self.get_rule_id_from_banning(res))
+        self.banned_rules[fwID][str(rule)] = ruleID["rule_id"]
+
+        print(json.dumps(self.get_response(res), indent=4))
+
+        print("////////////////")
+
+        ## DEBUG PURPOSES ONLY ##
+        thread = Thread(target=self.delayed_unban_rule, args=(json.dumps(ruleID), duration,))
+        thread.start()
+        #########################
+
+    def delayed_unban_rule(self, ruleID, duration):
+        time.sleep(duration)
+        self.unban_rule(ruleID)
+
+    def unban_rule(self, res):
+        jsonRule = json.loads(res)
+
+        print("////////////////")
+        print("Unbanning rule: %s" % jsonRule["rule_id"])
+
+        fwIDs = []
+        for fwID in self.banned_rules:
+            for rule in self.banned_rules[fwID].copy():
+                if self.banned_rules[fwID][rule] == jsonRule["rule_id"]:
+                    fwIDs.append(fwID)
+                    del self.banned_rules[fwID][rule]
+
+        for fwID in fwIDs:
+            res = self.fwc.delete_rule(Response(content_type='application/json', body=json.dumps(res)), FirewallRules.RULES[fwID]["dpid"])
+            if res.status_code == 200:
+                print(json.dumps(self.get_response(res), indent=4))
+
+        print("////////////////")
 
     #################################
     ######## Events Handlers ########
@@ -209,8 +315,7 @@ class DynamicFirewall(app_manager.RyuApp):
             if fwID in FirewallRules.SWITCHES_ID:
                 self.fwc.set_enable("", FirewallRules.RULES[fwID]["dpid"])
                 for rule in FirewallRules.RULES[fwID]["rules"]:
-                    body = json.dumps(str(rule))
-                    res = Response(content_type='application/json', body=body)
+                    res = Response(content_type='application/json', body=json.dumps(rule))
                     self.fwc.set_rule(res, FirewallRules.RULES[fwID]["dpid"])
         else:
             self.fwc.unregist_ofs(ev.dp)
@@ -232,11 +337,15 @@ class DynamicFirewall(app_manager.RyuApp):
 
     @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)
     def _dump_alert(self, ev):
-        msg = ev.msg.alertmsg[0].decode()
+        _alert: alert.AlertPkt = ev.msg
+        msg = _alert.alertmsg[0].decode()
+        sid = self.get_snort_sid(msg)
 
-        print('alertmsg: %s' % msg)
+        if int(sid) == 1100013: # Debugging
+            ip = self.get_dst_ip(_alert.pkt)
+            self.ban_ip(ip, 15)
 
-        # self.packet_print(msg.pkt)
+        # self.packet_print(_alert.pkt)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):

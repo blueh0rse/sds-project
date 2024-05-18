@@ -105,6 +105,13 @@ class FirewallController():
     def __init__(self, data):
         self.dpset = data['dpset']
         self.waiters = data['waiters']
+        self.waiters_for_delete = data['waiters'].copy()
+
+    def update(self, data):
+        self.dpset = data['dpset']
+        self.waiters = data['waiters']
+        self.waiters_for_delete = data['waiters'].copy()
+        print("Waiters updated!")
 
     @classmethod
     def set_logger(cls, logger):
@@ -198,7 +205,7 @@ class FirewallController():
     def delete_vlan_rule(self, req, switchid, vlanid, **_kwargs):
         return self._delete_rule(req, switchid, vlan_id=vlanid)
 
-    def _get_rules(self, switchid, vlan_id=VLANID_NONE):
+    def _get_rules(self, switchid = -1, vlan_id=VLANID_NONE):
         try:
             dps = self._OFS_LIST.get_ofs(switchid)
             vid = FirewallController._conv_toint_vlanid(vlan_id)
@@ -213,10 +220,9 @@ class FirewallController():
         body = json.dumps(msgs)
         return Response(content_type='application/json', body=body)
 
-    def _set_rule(self, req, switchid, vlan_id=VLANID_NONE):
+    def _set_rule(self, req = {}, switchid = -1, vlan_id=VLANID_NONE):
         try:
-            rule = req.json if req.body else {}
-            rule = json.loads(rule)
+            rule = json.loads(req.body)
         except ValueError:
             FirewallController._LOGGER.debug('invalid syntax %s', req.body)
             return Response(status=400)
@@ -238,10 +244,9 @@ class FirewallController():
         body = json.dumps(msgs)
         return Response(content_type='application/json', body=body)
 
-    def _delete_rule(self, req, switchid, vlan_id=VLANID_NONE):
+    def _delete_rule(self, req = {}, switchid = -1, vlan_id=VLANID_NONE):
         try:
-            ruleid = req.json if req.body else {}
-            rule = json.loads(rule)
+            ruleid = json.loads(req.body)
         except ValueError:
             FirewallController._LOGGER.debug('invalid syntax %s', req.body)
             return Response(status=400)
@@ -255,7 +260,7 @@ class FirewallController():
         msgs = []
         for f_ofs in dps.values():
             try:
-                msg = f_ofs.delete_rule(ruleid, self.waiters, vid)
+                msg = f_ofs.delete_rule(ruleid, self.waiters_for_delete, vid)
                 msgs.append(msg)
             except ValueError as message:
                 return Response(status=400, body=str(message))
@@ -333,7 +338,6 @@ class Firewall(object):
                     key: value}
         return _rest_command
 
-    @rest_command
     def get_status(self, waiters):
         msgs = self.ofctl.get_flow_stats(self.dp, waiters)
 
@@ -346,7 +350,6 @@ class Firewall(object):
 
         return REST_STATUS, status
 
-    @rest_command
     def set_disable_flow(self):
         cookie = 0
         priority = STATUS_FLOW_PRIORITY
@@ -360,7 +363,6 @@ class Firewall(object):
         msg = {'result': 'success', 'details': 'firewall stopped.'}
         return REST_COMMAND_RESULT, msg
 
-    @rest_command
     def set_enable_flow(self):
         cookie = 0
         priority = STATUS_FLOW_PRIORITY
@@ -376,7 +378,6 @@ class Firewall(object):
                'details': 'firewall running.'}
         return REST_COMMAND_RESULT, msg
 
-    @rest_command
     def get_log_status(self, waiters):
         msgs = self.ofctl.get_flow_stats(self.dp, waiters)
 
@@ -388,13 +389,11 @@ class Firewall(object):
                     if flow_stat['actions']:
                         status = REST_STATUS_ENABLE
 
-        return REST_LOG_STATUS, status
+        return {REST_LOG_STATUS: status}
 
-    @rest_command
     def set_log_disable(self, waiters=None):
         return self._set_log_status(False, waiters)
 
-    @rest_command
     def set_log_enable(self, waiters=None):
         return self._set_log_status(True, waiters)
 
@@ -445,7 +444,6 @@ class Firewall(object):
         cmd = self.dp.ofproto.OFPFC_ADD
         self.ofctl.mod_flow_entry(self.dp, flow, cmd)
 
-    @rest_command
     def set_rule(self, rest, waiters, vlan_id):
         msgs = []
         cookie_list = self._get_cookie(vlan_id)
@@ -455,7 +453,7 @@ class Firewall(object):
         return REST_COMMAND_RESULT, msgs
 
     def _set_rule(self, cookie, rest, waiters, vlan_id):
-        priority = 2
+        priority = int(rest.get(REST_PRIORITY, ACL_FLOW_PRIORITY_MIN))
 
         if (priority < ACL_FLOW_PRIORITY_MIN
                 or ACL_FLOW_PRIORITY_MAX < priority):
@@ -467,12 +465,11 @@ class Firewall(object):
 
         match = Match.to_openflow(rest)
         if rest.get(REST_ACTION) == REST_ACTION_DENY:
-            result = self.get_log_status(waiters)
+            result = self.get_log_status({})
             if result[REST_LOG_STATUS] == REST_STATUS_ENABLE:
                 rest[REST_ACTION] = REST_ACTION_PACKETIN
         actions = Action.to_openflow(rest)
-        flow = self._to_of_flow(cookie=cookie, priority=priority,
-                                match=match, actions=actions)
+        flow = self._to_of_flow(cookie=cookie, priority=priority, match=match, actions=actions)
 
         cmd = self.dp.ofproto.OFPFC_ADD
         try:
@@ -484,11 +481,13 @@ class Firewall(object):
         msg = {'result': 'success',
                'details': 'Rule added. : rule_id=%d' % rule_id}
 
+        ## Trigger log collection so that the waiters are updated with the new rule.
+        result = self.get_log_status({})
+
         if vlan_id != VLANID_NONE:
             msg.setdefault(REST_VLANID, vlan_id)
         return msg
 
-    @rest_command
     def get_rules(self, waiters, vlan_id):
         rules = {}
         msgs = self.ofctl.get_flow_stats(self.dp, waiters)
@@ -516,8 +515,42 @@ class Firewall(object):
 
         return REST_ACL, get_data
 
-    @rest_command
+    def get_flow_stats(self, dp, waiters):
+        # Note: OpenFlow does not allow to filter flow entries by priority,
+        # but for efficiency, ofctl provides the way to do it.
+        priority = -1
+
+        if dp.id not in waiters:
+            return {}
+
+        lock, msgs = waiters[dp.id]
+
+        flows = []
+        for msg in msgs:
+            for stats in msg.body:
+                if 0 <= priority != stats.priority:
+                    continue
+
+                actions = ofctl_v1_3.actions_to_str(stats.instructions)
+                match = ofctl_v1_3.match_to_str(stats.match)
+
+                s = {'priority': stats.priority,
+                    'cookie': stats.cookie,
+                    'idle_timeout': stats.idle_timeout,
+                    'hard_timeout': stats.hard_timeout,
+                    'actions': actions,
+                    'match': match,
+                    'byte_count': stats.byte_count,
+                    'duration_sec': stats.duration_sec,
+                    'duration_nsec': stats.duration_nsec,
+                    'packet_count': stats.packet_count,
+                    'table_id': ofctl_v1_3.UTIL.ofp_table_to_user(stats.table_id)}
+                flows.append(s)
+
+        return {str(dp.id): flows}
+
     def delete_rule(self, rest, waiters, vlan_id):
+        rest = json.loads(rest)
         try:
             if rest[REST_RULE_ID] == REST_ALL:
                 rule_id = REST_ALL
@@ -529,7 +562,7 @@ class Firewall(object):
         vlan_list = []
         delete_list = []
 
-        msgs = self.ofctl.get_flow_stats(self.dp, waiters)
+        msgs = self.get_flow_stats(self.dp, waiters)
         if str(self.dp.id) in msgs:
             flow_stats = msgs[str(self.dp.id)]
             for flow_stat in flow_stats:

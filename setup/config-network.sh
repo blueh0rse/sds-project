@@ -16,8 +16,8 @@ sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth1 all
 
 sudo snort -i snort-mirror -A unsock -l /tmp -c /etc/snort/snort.conf -q -D > /dev/null 2>&1
 
-sudo ovs-vsctl set Bridge s1 protocols=OpenFlow13
-sudo ovs-vsctl set Bridge s10 protocols=OpenFlow13
+# sudo ovs-vsctl set Bridge s1 protocols=OpenFlow13
+# sudo ovs-vsctl set Bridge s10 protocols=OpenFlow13
 
 # Start Ryu
 cd $workdir/tools/ryu/
