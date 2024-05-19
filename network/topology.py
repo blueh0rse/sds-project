@@ -14,6 +14,9 @@ def customTopology():
 
     # Switches
     sLoadBalancer = net.addSwitch('s10')
+    sPublicUsers = net.addSwitch('s4')
+    sPrivateServers = net.addSwitch('s3')
+    sUsers = net.addSwitch('s2')
     sGeneral = net.addSwitch('s1')
 
     # Users
@@ -32,24 +35,30 @@ def customTopology():
     pu1 = net.addHost('pu1', ip='10.0.255.1/16')
 
     print("*** Creating links")
-    net.addLink(h1, sGeneral)
-    net.addLink(h2, sGeneral)
-    net.addLink(h3, sGeneral)
+    net.addLink(h1, sUsers)
+    net.addLink(h2, sUsers)
+    net.addLink(h3, sUsers)
 
-    net.addLink(pad, sGeneral)
+    net.addLink(pad, sPrivateServers)
 
-    net.addLink(pu1, sGeneral)
+    net.addLink(pu1, sPublicUsers)
 
     net.addLink(ws1, sLoadBalancer)
     net.addLink(ws2, sLoadBalancer)
 
     net.addLink(sGeneral, sLoadBalancer)
+    net.addLink(sGeneral, sUsers)
+    net.addLink(sGeneral, sPrivateServers)
+    net.addLink(sGeneral, sPublicUsers)
 
     print("*** Starting network")
     net.build()
     c0.start()
     sGeneral.start([c0])
     sLoadBalancer.start([c0])
+    sUsers.start([c0])
+    sPrivateServers.start([c0])
+    sPublicUsers.start([c0])
 
     h1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
     h2.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')

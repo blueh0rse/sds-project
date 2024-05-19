@@ -12,7 +12,10 @@ sudo cp $workdir/config/SDS-project_SnortRules.rules /etc/snort/rules/SDS-projec
 
 sudo $workdir/scripts/add-port.sh s1 snort-mirror
 sudo $workdir/scripts/add-mirror.sh s1 snort snort-mirror
-sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth1 all
+sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth1 egress # DMZ
+sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth4 egress # Public users
+sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth3 egress # Private servers
+sudo $workdir/scripts/add-traffic-to-mirror.sh snort s1-eth2 egress # Employees
 
 sudo snort -i snort-mirror -A unsock -l /tmp -c /etc/snort/snort.conf -q -D > /dev/null 2>&1
 

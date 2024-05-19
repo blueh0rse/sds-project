@@ -44,6 +44,24 @@ class FirewallRules():
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
             ]
         },
+        2: {
+            "dpid": "0000000000000002",
+            "rules": [
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+            ]
+        },
+        3: {
+            "dpid": "0000000000000003",
+            "rules": [
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+            ]
+        },
+        4: {
+            "dpid": "0000000000000004",
+            "rules": [
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+            ]
+        },
         10: {
             "dpid": "000000000000000a",
             "rules": [
@@ -58,20 +76,20 @@ class FirewallRules():
 
     IP_TO_MAIN_SWITCH = {
         "10.0.1.1": {
-            "int": 1,
-            "dpid": "0000000000000001"
+            "int": 2,
+            "dpid": "0000000000000002"
         },
         "10.0.1.2": {
-            "int": 1,
-            "dpid": "0000000000000001"
+            "int": 2,
+            "dpid": "0000000000000002"
         },
         "10.0.1.3": {
-            "int": 1,
-            "dpid": "0000000000000001"
+            "int": 2,
+            "dpid": "0000000000000002"
         },
         "10.0.2.1": {
-            "int": 1,
-            "dpid": "0000000000000001"
+            "int": 3,
+            "dpid": "0000000000000003"
         },
         "10.0.3.1": {
             "int": 10,
@@ -81,9 +99,13 @@ class FirewallRules():
             "int": 10,
             "dpid": "000000000000000a"
         },
+        "10.0.255.1": {
+            "int": 4,
+            "dpid": "0000000000000004"
+        }
     }
 
-    SWITCHES_ID = [1, 10]
+    SWITCHES_ID = [1, 2, 3, 4, 10]
 
 class DynamicFirewall(app_manager.RyuApp):
 
@@ -253,7 +275,7 @@ class DynamicFirewall(app_manager.RyuApp):
         res["rule_id"] = rule.split("=")[1]
         return json.dumps(res)
 
-    def ban_ip(self, ip, duration=5):
+    def ban_ip(self, ip):
         fwID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["int"]
         dpID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["dpid"]
         rule = {"nw_src": ip, "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY", "priority": 100}
@@ -261,7 +283,7 @@ class DynamicFirewall(app_manager.RyuApp):
         if fwID not in self.banned_rules:
             self.banned_rules[fwID] = {}
         if str(rule) in self.banned_rules[fwID]:
-            return
+            return None
 
         print("////////////////")
         print("Banning IP: %s" % ip)
@@ -274,17 +296,17 @@ class DynamicFirewall(app_manager.RyuApp):
 
         print("////////////////")
 
-        ## DEBUG PURPOSES ONLY ##
-        thread = Thread(target=self.delayed_unban_rule, args=(json.dumps(ruleID), duration,))
-        thread.start()
-        #########################
+        return (json.dumps(ruleID), str(rule))
 
-    def delayed_unban_rule(self, ruleID, duration):
+    def delayed_unban_rule(self, bannedRule, duration):
+        if duration == -1:
+            return
+
         time.sleep(duration)
-        self.unban_rule(ruleID)
+        self.unban_rule(bannedRule)
 
     def unban_rule(self, res):
-        jsonRule = json.loads(res)
+        jsonRule = json.loads(res[0])
 
         print("////////////////")
         print("Unbanning rule: %s" % jsonRule["rule_id"])
@@ -292,14 +314,17 @@ class DynamicFirewall(app_manager.RyuApp):
         fwIDs = []
         for fwID in self.banned_rules:
             for rule in self.banned_rules[fwID].copy():
-                if self.banned_rules[fwID][rule] == jsonRule["rule_id"]:
+                if rule == res[1]:
                     fwIDs.append(fwID)
                     del self.banned_rules[fwID][rule]
 
+        print("////////////////")
+        print(fwIDs)
+        print("////////////////")
         for fwID in fwIDs:
-            res = self.fwc.delete_rule(Response(content_type='application/json', body=json.dumps(res)), FirewallRules.RULES[fwID]["dpid"])
-            if res.status_code == 200:
-                print(json.dumps(self.get_response(res), indent=4))
+            result = self.fwc.delete_rule(Response(content_type='application/json', body=json.dumps(res[0])), FirewallRules.RULES[fwID]["dpid"])
+            if result.status_code == 200:
+                print(json.dumps(self.get_response(result), indent=4))
 
         print("////////////////")
 
@@ -340,10 +365,54 @@ class DynamicFirewall(app_manager.RyuApp):
         _alert: alert.AlertPkt = ev.msg
         msg = _alert.alertmsg[0].decode()
         sid = self.get_snort_sid(msg)
+        bannedRule = None
+        duration = -1
 
-        if int(sid) == 1100013: # Debugging
+        # self.fwc.get_log_status(None)
+        if int(sid) == 1100001: # local ICMP flood (light)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("local ICMP flood (light)")
+            duration = 30
+        if int(sid) == 1100002: # local ICMP flood (medium)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("local ICMP flood (medium)")
+            duration = 30
+        if int(sid) == 1100003: # external ICMP flood (light)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("external ICMP flood (light)")
+            duration = 30
+        if int(sid) == 1100004: # external ICMP flood (medium)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("external ICMP flood (medium)")
+            duration = 30
+        if int(sid) == 1100005: # external ICMP flood (heavy)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("external ICMP flood (heavy)")
+            duration = 30
+        if int(sid) == 1100006: # external ICMP flood (dst tracking)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("external ICMP flood (dst tracking)")
+            duration = 30
+        elif int(sid) == 1100017: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
-            self.ban_ip(ip, 15)
+            bannedRule = self.ban_ip(ip)
+            duration = 30
+
+        if bannedRule is not None:
+            thread = Thread(target=self.delayed_unban_rule, args=(bannedRule, duration,))
+            thread.start()
 
         # self.packet_print(_alert.pkt)
 

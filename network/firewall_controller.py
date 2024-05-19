@@ -156,7 +156,7 @@ class FirewallController():
 
     # GET /firewall/log/status
     def get_log_status(self, dummy, **_kwargs):
-        return self._access_module(REST_ALL, 'get_log_status', waiters=self.waiters)
+        return self._access_module(REST_ALL, 'get_log_status', waiters={})
 
     # PUT /firewall/log/enable/{switchid}
     def set_log_enable(self, dummy, switchid, **_kwargs):
@@ -379,6 +379,7 @@ class Firewall(object):
         return REST_COMMAND_RESULT, msg
 
     def get_log_status(self, waiters):
+        print("get_log_status")
         msgs = self.ofctl.get_flow_stats(self.dp, waiters)
 
         status = REST_STATUS_DISABLE
