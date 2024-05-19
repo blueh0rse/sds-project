@@ -33,6 +33,7 @@ def customTopology():
 
     # Public Users
     pu1 = net.addHost('pu1', ip='10.0.255.1/16')
+    pu2 = net.addHost('pu2', ip='10.0.255.2/16')
 
     print("*** Creating links")
     net.addLink(h1, sUsers)
@@ -42,6 +43,7 @@ def customTopology():
     net.addLink(pad, sPrivateServers)
 
     net.addLink(pu1, sPublicUsers)
+    net.addLink(pu2, sPublicUsers)
 
     net.addLink(ws1, sLoadBalancer)
     net.addLink(ws2, sLoadBalancer)
@@ -65,6 +67,7 @@ def customTopology():
     h3.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
     pad.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
     pu1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
+    pu2.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
     ws1.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
     ws2.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=1')
 

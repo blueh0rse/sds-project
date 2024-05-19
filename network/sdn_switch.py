@@ -102,6 +102,10 @@ class FirewallRules():
         "10.0.255.1": {
             "int": 4,
             "dpid": "0000000000000004"
+        },
+        "10.0.255.2": {
+            "int": 4,
+            "dpid": "0000000000000004"
         }
     }
 
@@ -405,6 +409,50 @@ class DynamicFirewall(app_manager.RyuApp):
             if bannedRule is not None:
                 print("external ICMP flood (dst tracking)")
             duration = 30
+        if int(sid) == 1100007: # TCP flood (light)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP flood (light)")
+            duration = 30
+        if int(sid) == 1100008: # TCP flood (medium)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP flood (medium)")
+            duration = 30
+        if int(sid) == 1100009: # TCP flood (heavy)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP flood (heavy)")
+            duration = 30
+        if int(sid) == 1100010: # TCP flood (dst tracking)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP flood (dst tracking)")
+            duration = 30
+        if int(sid) == 1100011: # TCP port scan
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP port scan")
+            duration = 30
+        if int(sid) == 1100012: # TCP port scan (DMZ)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("TCP port scan (DMZ)")
+            duration = 30
+        if int(sid) == 1100014: # SSH connection (attack)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip)
+            if bannedRule is not None:
+                print("SSH connection (attack)")
+            duration = 30
+
+
         elif int(sid) == 1100017: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
