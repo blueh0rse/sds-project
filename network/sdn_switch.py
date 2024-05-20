@@ -11,6 +11,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_0
 from ryu.ofproto import ofproto_v1_2
 from ryu.ofproto import ofproto_v1_3
+from ryu.lib import dpid as dpid_lib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ipv4
@@ -36,6 +37,12 @@ class FirewallRules():
                 {"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.2.1/32", "nw_dst": "10.0.1.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
+                {"nw_src": "10.0.255.0/24", "in_port": "s1-eth4", "nw_proto": "ARP", "actions": "output:s1-eth2", "priority": 10},
+                {"nw_dst": "10.0.255.0/24", "in_port": "s1-eth2", "nw_proto": "ARP", "actions": "output:s1-eth4", "priority": 10},
+
+                {"nw_src": "10.0.255.0/24", "in_port": "s1-eth2", "nw_proto": "ARP", "actions": "output:s1-eth1", "priority": 10},
+                {"nw_dst": "10.0.255.0/24", "in_port": "s1-eth1", "nw_proto": "ARP", "actions": "output:s1-eth2", "priority": 10},
+
                 # pu1 access to ws1 and ws2
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
@@ -47,6 +54,9 @@ class FirewallRules():
         2: {
             "dpid": "0000000000000002",
             "rules": [
+                {"nw_src": "10.0.255.0/24", "in_port": "s2-eth4", "nw_proto": "ARP", "actions": "output:s2-eth4", "priority": 10},
+                {"nw_dst": "10.0.255.0/24", "in_port": "s2-eth4", "nw_proto": "ARP", "actions": "output:s2-eth4", "priority": 10},
+
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
             ]
         },
@@ -59,6 +69,9 @@ class FirewallRules():
         4: {
             "dpid": "0000000000000004",
             "rules": [
+                {"nw_src": "10.0.255.0/24", "in_port": "s4-eth1", "nw_proto": "ARP", "actions": "output:s4-eth3", "priority": 5},
+                {"nw_dst": "10.0.255.0/24", "in_port": "s4-eth3", "nw_proto": "ARP", "actions": "output:s4-eth1", "priority": 5},
+
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
             ]
         },
@@ -361,6 +374,19 @@ class DynamicFirewall(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Packet In")
+        print("Switch: %s" % dpid_lib.dpid_to_str(ev.msg.datapath.id))
         self.fwc.packet_in_handler(ev.msg)
         self.snort_packet_in_handler(ev.msg)
 
