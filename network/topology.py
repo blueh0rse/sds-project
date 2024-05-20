@@ -20,20 +20,20 @@ def customTopology():
     sGeneral = net.addSwitch('s1')
 
     # Users
-    h1 = net.addHost('h1', ip='10.0.1.1/16')
-    h2 = net.addHost('h2', ip='10.0.1.2/16')
-    h3 = net.addHost('h3', ip='10.0.1.3/16')
+    h1 = net.addHost('h1', ip='10.0.1.1/16', mac='00:00:00:00:01:01')
+    h2 = net.addHost('h2', ip='10.0.1.2/16', mac='00:00:00:00:01:02')
+    h3 = net.addHost('h3', ip='10.0.1.3/16', mac='00:00:00:00:01:03')
 
     # Active Directory
-    pad = net.addHost('pad', ip='10.0.2.1/16')
+    pad = net.addHost('pad', ip='10.0.2.1/16', mac='00:00:00:00:02:01')
 
     # DMZ #3 Web Servers
-    ws1 = net.addHost('ws1', ip='10.0.3.1/16')
-    ws2 = net.addHost('ws2', ip='10.0.3.2/16')
+    ws1 = net.addHost('ws1', ip='10.0.3.1/16', mac='00:00:00:00:03:01')
+    ws2 = net.addHost('ws2', ip='10.0.3.2/16', mac='00:00:00:00:03:02')
 
     # Public Users
-    pu1 = net.addHost('pu1', ip='10.0.255.1/16')
-    pu2 = net.addHost('pu2', ip='10.0.255.2/16')
+    pu1 = net.addHost('pu1', ip='10.0.255.1/16', mac='00:00:00:00:ff:01')
+    pu2 = net.addHost('pu2', ip='10.0.255.2/16', mac='00:00:00:00:ff:02')
 
     print("*** Creating links")
     net.addLink(h1, sUsers)

@@ -2,6 +2,7 @@ import time
 import array
 import json
 
+from ryu.app import simple_switch_13
 from ryu.app.wsgi import Response
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -11,10 +12,14 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_0
 from ryu.ofproto import ofproto_v1_2
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet
+from ryu.lib.mac import haddr_to_int
+from ryu.lib.packet import arp
 from ryu.lib.packet import ethernet
+from ryu.lib.packet import ether_types
 from ryu.lib.packet import ipv4
 from ryu.lib.packet import icmp
+from ryu.lib.packet import packet
+from ryu.lib.packet.ether_types import ETH_TYPE_IP
 from ryu.lib import hub, alert, snortlib
 from threading import Thread
 
@@ -38,7 +43,9 @@ class FirewallRules():
 
                 # pu1 access to ws1 and ws2
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.0.100/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.0.100/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
 
                 # General DENY
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
@@ -76,40 +83,40 @@ class FirewallRules():
 
     IP_TO_MAIN_SWITCH = {
         "10.0.1.1": {
-            "int": 2,
-            "dpid": "0000000000000002"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.1.2": {
-            "int": 2,
-            "dpid": "0000000000000002"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.1.3": {
-            "int": 2,
-            "dpid": "0000000000000002"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.2.1": {
-            "int": 3,
-            "dpid": "0000000000000003"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.3.1": {
-            "int": 10,
-            "dpid": "000000000000000a"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.3.2": {
-            "int": 10,
-            "dpid": "000000000000000a"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.255.1": {
-            "int": 4,
-            "dpid": "0000000000000004"
+            "int": 1,
+            "dpid": "0000000000000001"
         },
         "10.0.255.2": {
-            "int": 4,
-            "dpid": "0000000000000004"
+            "int": 1,
+            "dpid": "0000000000000001"
         }
     }
 
-    SWITCHES_ID = [1, 2, 3, 4, 10]
+    SWITCHES_ID = [1]
 
 class DynamicFirewall(app_manager.RyuApp):
 
@@ -123,6 +130,15 @@ class DynamicFirewall(app_manager.RyuApp):
     }
 
     REQUIREMENTS = {'switchid': SWITCHID_PATTERN, 'vlanid': VLANID_PATTERN}
+
+    VIRTUAL_IP = '10.0.0.100'  # The virtual server IP
+
+    SERVER1_IP = '10.0.3.1'
+    SERVER1_MAC = '00:00:00:00:03:01'
+    SERVER1_PORT = 1
+    SERVER2_IP = '10.0.3.2'
+    SERVER2_MAC = '00:00:00:00:03:02'
+    SERVER2_PORT = 2
 
     def __init__(self, *args, **kwargs):
         super(DynamicFirewall, self).__init__(*args, **kwargs)
@@ -149,6 +165,7 @@ class DynamicFirewall(app_manager.RyuApp):
         self.snort.set_config(socket_config)
         self.snort.start_socket_server()
 
+        self.mac_to_port = {}
 
 
     ################################
@@ -204,12 +221,25 @@ class DynamicFirewall(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
+        # construct flow_mod message and send it.
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
-
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                 match=match, instructions=inst)
         datapath.send_msg(mod)
+
+    def remove_flow(self, datapath, match):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        mod = parser.OFPFlowMod(datapath=datapath, command=ofproto.OFPFC_DELETE,
+                                out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
+                                match=match)
+        datapath.send_msg(mod)
+
+    def delayed_remove_flow(self, datapath, match, duration):
+        time.sleep(duration)
+        self.remove_flow(datapath, match)
 
     def snort_packet_in_handler(self, msg):
         datapath = msg.datapath
@@ -332,37 +362,181 @@ class DynamicFirewall(app_manager.RyuApp):
 
         print("////////////////")
 
+    # Load Balancer Functions
+    def load_balancer_packet_in_hanlder(self, ev):
+        if ev.msg.msg_len < ev.msg.total_len:
+            self.logger.debug("packet truncated: only %s of %s bytes",
+                              ev.msg.msg_len, ev.msg.total_len)
+        msg = ev.msg
+        datapath = msg.datapath
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        in_port = msg.match['in_port']
+
+        pkt = packet.Packet(msg.data)
+        eth = pkt.get_protocols(ethernet.ethernet)[0]
+
+        if eth.ethertype == ether_types.ETH_TYPE_LLDP:
+            return
+
+        dst_mac = eth.dst
+        src_mac = eth.src
+
+        dpid = datapath.id
+        self.mac_to_port.setdefault(dpid, {})
+
+        # self.logger.info("packet in %s %s %s %s", dpid, src_mac, dst_mac, in_port)
+
+        self.mac_to_port[dpid][src_mac] = in_port
+
+        if dst_mac in self.mac_to_port[dpid]:
+            out_port = self.mac_to_port[dpid][dst_mac]
+        else:
+            out_port = ofproto.OFPP_FLOOD
+
+        actions = [parser.OFPActionOutput(out_port)]
+
+        if out_port != ofproto.OFPP_FLOOD:
+            match = parser.OFPMatch(in_port=in_port, eth_dst=dst_mac, eth_src=src_mac)
+            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                return
+            else:
+                self.add_flow(datapath, 1, match, actions)
+            delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 60))
+            delayed_remove_flow_thread.start()
+
+        if ev.msg.datapath.id in [4, 10]:
+            # Handle ARP Packet
+            if eth.ethertype == ether_types.ETH_TYPE_ARP:
+                arp_header = pkt.get_protocol(arp.arp)
+                if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
+                    # Build an ARP reply packet using source IP and source MAC
+                    reply_packet = self.arp_reply(arp_header.src_ip, arp_header.src_mac)
+                    actions = [parser.OFPActionOutput(in_port)]
+                    packet_out = parser.OFPPacketOut(datapath=datapath,
+                                                    in_port=ofproto.OFPP_ANY,
+                                                    data=reply_packet.data,
+                                                    actions=actions,
+                                                    buffer_id=ofproto.OFP_NO_BUFFER)
+                    datapath.send_msg(packet_out)
+                    self.logger.info("Sent the ARP reply packet")
+                    return
+
+        if ev.msg.datapath.id == 10:
+            # Handle TCP Packet
+            if eth.ethertype == ETH_TYPE_IP:
+                ip_header = pkt.get_protocol(ipv4.ipv4)
+                if ip_header.dst == self.VIRTUAL_IP:
+                    self.handle_tcp_packet(datapath, in_port, ip_header, parser, dst_mac, src_mac)
+                    self.logger.info("TCP packet handled")
+                    return
+
+        # Send if other packet
+        data = None
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+            data = msg.data
+
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=msg.buffer_id,
+                                  in_port=in_port,
+                                  actions=actions,
+                                  data=data)
+        datapath.send_msg(out)
+
+    # Source IP and MAC passed here now become the destination for the reply packet
+    def arp_reply(self, dst_ip, dst_mac):
+        arp_target_ip = dst_ip  # the sender ip
+        arp_target_mac = dst_mac  # the sender mac
+        # Making the load balancer IP as source IP
+        src_ip = self.VIRTUAL_IP
+
+        if haddr_to_int(arp_target_mac) % 2 == 1:
+            src_mac = self.SERVER1_MAC
+        else:
+            src_mac = self.SERVER2_MAC
+        self.logger.info("Selected server MAC: " + src_mac)
+
+        pkt = packet.Packet()
+        pkt.add_protocol(ethernet.ethernet(dst=dst_mac, src=src_mac, ethertype=ether_types.ETH_TYPE_ARP))
+        pkt.add_protocol(arp.arp(opcode=arp.ARP_REPLY, src_mac=src_mac, src_ip=src_ip, dst_mac=arp_target_mac, dst_ip=arp_target_ip))
+        pkt.serialize()
+        return pkt
+
+    def handle_tcp_packet(self, datapath, in_port, ip_header, parser, dst_mac, src_mac):
+
+        if dst_mac == self.SERVER1_MAC:
+            server_dst_ip = self.SERVER1_IP
+            server_out_port = self.SERVER1_PORT
+        else:
+            server_dst_ip = self.SERVER2_IP
+            server_out_port = self.SERVER2_PORT
+
+        # Route to server
+        match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=ip_header.proto,
+                                ipv4_dst=self.VIRTUAL_IP, ipv4_src=ip_header.src)
+
+        actions = [parser.OFPActionSetField(ipv4_dst=server_dst_ip),
+                   parser.OFPActionOutput(server_out_port)]
+
+        self.add_flow(datapath, 20, match, actions)
+        self.logger.info("<==== Added TCP Flow- Route to Server: " + str(server_dst_ip) +
+                         " from Client :" + str(ip_header.src) + " on Switch Port:" +
+                         str(server_out_port) + "====>")
+        delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 15))
+        delayed_remove_flow_thread.start()
+
+        # Reverse route from server
+        match = parser.OFPMatch(in_port=server_out_port, eth_type=ETH_TYPE_IP,
+                                ip_proto=ip_header.proto,
+                                ipv4_src=server_dst_ip,
+                                eth_dst=src_mac)
+        actions = [parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
+                   parser.OFPActionOutput(in_port)]
+
+        self.add_flow(datapath, 20, match, actions)
+        self.logger.info("<==== Added TCP Flow- Reverse route from Server: " + str(server_dst_ip) +
+                         " to Client: " + str(src_mac) + " on Switch Port:" +
+                         str(in_port) + "====>")
+        delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 15))
+        delayed_remove_flow_thread.start()
+
     #################################
     ######## Events Handlers ########
     #################################
     @set_ev_cls(dpset.EventDP, dpset.DPSET_EV_DISPATCHER)
     def handler_datapath(self, ev):
-        if ev.enter:
-            self.fwc.regist_ofs(ev.dp)
-
-            fwID = ev.dp.id
-            if fwID in FirewallRules.SWITCHES_ID:
+        fwID = ev.dp.id
+        if fwID in FirewallRules.SWITCHES_ID:
+            if ev.enter:
+                self.fwc.regist_ofs(ev.dp)
                 self.fwc.set_enable("", FirewallRules.RULES[fwID]["dpid"])
                 for rule in FirewallRules.RULES[fwID]["rules"]:
                     res = Response(content_type='application/json', body=json.dumps(rule))
                     self.fwc.set_rule(res, FirewallRules.RULES[fwID]["dpid"])
-        else:
-            self.fwc.unregist_ofs(ev.dp)
+            else:
+                self.fwc.unregist_ofs(ev.dp)
 
     # for OpenFlow version1.0
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def stats_reply_handler_v1_0(self, ev):
-        self.stats_reply_handler(ev)
+        if ev.msg.datapath.id in FirewallRules.SWITCHES_ID:
+            self.stats_reply_handler(ev)
 
     # for OpenFlow version1.2 or later
     @set_ev_cls(ofp_event.EventOFPStatsReply, MAIN_DISPATCHER)
     def stats_reply_handler_v1_2(self, ev):
-        self.stats_reply_handler(ev)
+        if ev.msg.datapath.id in FirewallRules.SWITCHES_ID:
+            self.stats_reply_handler(ev)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
-        self.fwc.packet_in_handler(ev.msg)
-        self.snort_packet_in_handler(ev.msg)
+        if ev.msg.datapath.id in FirewallRules.SWITCHES_ID:
+            self.fwc.packet_in_handler(ev.msg)
+        elif ev.msg.datapath.id in [2, 3, 4, 10]:
+            self.load_balancer_packet_in_hanlder(ev)
+        else:
+            self.snort_packet_in_handler(ev.msg)
 
     @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)
     def _dump_alert(self, ev):
