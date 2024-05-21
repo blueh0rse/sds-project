@@ -25,5 +25,11 @@ alert TCP 10.0.1.0/24 any -> 10.0.2.0/24 2222 (msg:"SSH connection (attack) --- 
 log TCP any any -> 10.0.3.0/24 80 (msg:"HTTP connection (log) --- 1100015"; sid:1100015; classtype:tcp-connection;)
 
 
-alert ICMP any any -> 255.255.255.255/32 any (msg:"failed SSH connection --- 1100016"; sid:1100016; classtype:icmp-event;)
-alert ICMP 255.255.255.255/32 any -> any any (msg:"Debug code --- 1100017"; sid:1100017; classtype:icmp-event;)
+alert ICMP any any -> 255.255.255.255/32 any (msg:"failed SSH connection retries --- 1100016"; sid:1100016; classtype:icmp-event; detection_filter:track by_src, count 5, seconds 60;)
+alert ICMP any any -> 254.254.254.254/32 any (msg:"API Honeypot detection  --- 1100017"; sid:1100017; classtype:icmp-event;)
+
+
+
+
+
+alert ICMP 255.255.255.255/32 any -> any any (msg:"Debug code --- 1110000"; sid:1110000; classtype:icmp-event;)

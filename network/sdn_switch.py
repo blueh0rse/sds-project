@@ -23,7 +23,7 @@ from ryu.lib.packet.ether_types import ETH_TYPE_IP
 from ryu.lib import hub, alert, snortlib
 from threading import Thread
 
-from firewall_controller import FirewallController, SWITCHID_PATTERN, VLANID_PATTERN
+from firewall_controller import FirewallController, SWITCHID_PATTERN, VLANID_PATTERN, REST_NW_PROTO_TCP, REST_NW_PROTO_ICMP, REST_NW_PROTO_UDP
 
 class FirewallRules():
 
@@ -46,34 +46,10 @@ class FirewallRules():
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.0.100/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.0.100/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-
-                # General DENY
-                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
-            ]
-        },
-        2: {
-            "dpid": "0000000000000002",
-            "rules": [
-                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-            ]
-        },
-        3: {
-            "dpid": "0000000000000003",
-            "rules": [
-                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-            ]
-        },
-        4: {
-            "dpid": "0000000000000004",
-            "rules": [
-                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-            ]
-        },
-        10: {
-            "dpid": "000000000000000a",
-            "rules": [
-                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.0.100/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.0.100/24", "nw_dst": "10.0.255.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
                 # General DENY
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
@@ -309,10 +285,10 @@ class DynamicFirewall(app_manager.RyuApp):
         res["rule_id"] = rule.split("=")[1]
         return json.dumps(res)
 
-    def ban_ip(self, ip):
+    def ban_ip(self, ip, protocol = REST_NW_PROTO_ICMP):
         fwID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["int"]
         dpID = FirewallRules.IP_TO_MAIN_SWITCH[ip]["dpid"]
-        rule = {"nw_src": ip, "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY", "priority": 100}
+        rule = {"nw_src": ip, "nw_dst": "10.0.0.0/16", "nw_proto": protocol, "actions": "DENY", "priority": 100}
 
         if fwID not in self.banned_rules:
             self.banned_rules[fwID] = {}
@@ -553,81 +529,95 @@ class DynamicFirewall(app_manager.RyuApp):
             if bannedRule is not None:
                 print("local ICMP flood (light)")
             duration = 30
-        if int(sid) == 1100002: # local ICMP flood (medium)
+        elif int(sid) == 1100002: # local ICMP flood (medium)
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("local ICMP flood (medium)")
             duration = 30
-        if int(sid) == 1100003: # external ICMP flood (light)
+        elif int(sid) == 1100003: # external ICMP flood (light)
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("external ICMP flood (light)")
             duration = 30
-        if int(sid) == 1100004: # external ICMP flood (medium)
+        elif int(sid) == 1100004: # external ICMP flood (medium)
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("external ICMP flood (medium)")
             duration = 30
-        if int(sid) == 1100005: # external ICMP flood (heavy)
+        elif int(sid) == 1100005: # external ICMP flood (heavy)
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("external ICMP flood (heavy)")
             duration = 30
-        if int(sid) == 1100006: # external ICMP flood (dst tracking)
+        elif int(sid) == 1100006: # external ICMP flood (dst tracking)
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("external ICMP flood (dst tracking)")
             duration = 30
-        if int(sid) == 1100007: # TCP flood (light)
+        elif int(sid) == 1100007: # TCP flood (light)
             ip = self.get_src_ip(_alert.pkt)
-            bannedRule = self.ban_ip(ip)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("TCP flood (light)")
             duration = 30
-        if int(sid) == 1100008: # TCP flood (medium)
+        elif int(sid) == 1100008: # TCP flood (medium)
             ip = self.get_src_ip(_alert.pkt)
-            bannedRule = self.ban_ip(ip)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("TCP flood (medium)")
             duration = 30
-        if int(sid) == 1100009: # TCP flood (heavy)
+        elif int(sid) == 1100009: # TCP flood (heavy)
             ip = self.get_src_ip(_alert.pkt)
-            bannedRule = self.ban_ip(ip)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("TCP flood (heavy)")
             duration = 30
-        if int(sid) == 1100010: # TCP flood (dst tracking)
+        elif int(sid) == 1100010: # TCP flood (dst tracking)
             ip = self.get_src_ip(_alert.pkt)
-            bannedRule = self.ban_ip(ip)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("TCP flood (dst tracking)")
             duration = 30
-        if int(sid) == 1100011: # TCP port scan
+        elif int(sid) == 1100011: # TCP port scan
             ip = self.get_src_ip(_alert.pkt)
-            bannedRule = self.ban_ip(ip)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("TCP port scan")
             duration = 30
-        if int(sid) == 1100012: # TCP port scan (DMZ)
-            ip = self.get_src_ip(_alert.pkt)
+        elif int(sid) == 1100012: # TCP port scan (DMZ)
+            ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("TCP port scan (DMZ)")
             duration = 30
-        if int(sid) == 1100014: # SSH connection (attack)
-            ip = self.get_src_ip(_alert.pkt)
+        elif int(sid) == 1100014: # SSH connection (attack)
+            ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
             bannedRule = self.ban_ip(ip)
             if bannedRule is not None:
                 print("SSH connection (attack)")
             duration = 30
 
 
-        elif int(sid) == 1100017: # Debugging
+        elif int(sid) == 1100016: # failed SSH connection retries
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
+            if bannedRule is not None:
+                print("Failed SSH connection retries")
+            duration = 30
+        elif int(sid) == 1100017: # API Honeypot detection
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
+            if bannedRule is not None:
+                print("API Honeypot detection")
+            duration = 30
+
+
+        elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip)
             duration = 30
