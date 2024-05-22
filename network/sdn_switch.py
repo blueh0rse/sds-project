@@ -1,6 +1,9 @@
 import time
 import array
 import json
+import socket
+import datetime
+from operator import attrgetter
 
 from ryu.app import simple_switch_13
 from ryu.app.wsgi import Response
@@ -116,6 +119,9 @@ class DynamicFirewall(app_manager.RyuApp):
     SERVER2_MAC = '00:00:00:00:03:02'
     SERVER2_PORT = 2
 
+    UDP_IP = "127.0.0.1"
+    UDP_PORT = 8094
+
     def __init__(self, *args, **kwargs):
         super(DynamicFirewall, self).__init__(*args, **kwargs)
 
@@ -142,11 +148,39 @@ class DynamicFirewall(app_manager.RyuApp):
         self.snort.start_socket_server()
 
         self.mac_to_port = {}
+        self.monitor_thread = hub.spawn(self._monitor)
+        self.ssh_connections = {
+            "10.0.1.1": { # Src IP
+                "10.0.2.1" : 1, # Dst IP
+                "10.0.1.2": 5,  # Dst IP
+            },
+            "10.0.2.1": {
+            }
+        }
 
 
     ################################
     ####### Helper Functions #######
     ################################
+
+    def _monitor(self):
+        print("_monitor")
+        while True:
+            self._send_stats()
+            hub.sleep(10)
+
+    def _send_stats(self):
+        PORT_MSG = "ssh,src_ip=%s dst_ip=%s,repetitions=%d %d"
+
+        for src_ip in self.ssh_connections:
+            for dst_ip in self.ssh_connections[src_ip]:
+                timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+                msg = PORT_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
+                print(msg)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                print(sock.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT)))
+
+        # self.ssh_connections = {}
 
     # Used with Firewall
     def stats_reply_handler(self, ev):
@@ -616,6 +650,16 @@ class DynamicFirewall(app_manager.RyuApp):
                 print("API Honeypot detection")
             duration = 30
 
+        elif int(sid) == 1100013: # SSH connection (log)
+            print("SSH connection (log)")
+            print (self.ssh_connections)
+            if not (str(self.get_src_ip(_alert.pkt)) in self.ssh_connections):
+                self.ssh_connections[str(self.get_src_ip(_alert.pkt))] = {}
+
+            if str(self.get_dst_ip(_alert.pkt)) in self.ssh_connections[str(self.get_src_ip(_alert.pkt))]:
+                self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] += 1
+            else:
+                self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] = 1
 
         elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)

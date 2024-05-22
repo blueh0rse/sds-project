@@ -18,7 +18,7 @@ alert TCP any any -> 10.0.2.0/24 any (msg:"TCP port scan       --- 1100011"; sid
 alert TCP any any -> 10.0.3.0/24 any (msg:"TCP port scan (DMZ) --- 1100012"; sid:1100012; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
 
 
-log TCP 10.0.1.0/24 any   -> 10.0.2.0/24 2222 (msg:"SSH connection (log)    --- 1100013"; sid:1100013; classtype:tcp-connection;)
+alert TCP 10.0.1.0/24 any   -> 10.0.2.0/24 2222 (msg:"SSH connection (log)  --- 1100013"; sid:1100013; classtype:tcp-connection;)
 alert TCP 10.0.1.0/24 any -> 10.0.2.0/24 2222 (msg:"SSH connection (attack) --- 1100014"; sid:1100014; classtype:tcp-connection; detection_filter:track by_src, count 10, seconds 60;)
 
 
