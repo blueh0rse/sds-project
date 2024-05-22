@@ -170,7 +170,7 @@ class DynamicFirewall(app_manager.RyuApp):
             hub.sleep(10)
 
     def _send_stats(self):
-        PORT_MSG = "ssh,src_ip=%s dst_ip=%s,repetitions=%d %d"
+        PORT_MSG = "ssh,src_ip=%s,dst_ip=%s repetitions=%d %d"
 
         for src_ip in self.ssh_connections:
             for dst_ip in self.ssh_connections[src_ip]:
