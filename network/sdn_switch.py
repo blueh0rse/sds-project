@@ -176,11 +176,10 @@ class DynamicFirewall(app_manager.RyuApp):
             for dst_ip in self.ssh_connections[src_ip]:
                 timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
                 msg = PORT_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
-                print(msg)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                print(sock.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT)))
+                sock.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT))
 
-        # self.ssh_connections = {}
+        self.ssh_connections = {}
 
     # Used with Firewall
     def stats_reply_handler(self, ev):
