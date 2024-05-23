@@ -2,11 +2,12 @@ import socket
 import requests
 import random
 import time
+import os
 from threading import Thread
 
 def curl_webserver():
     pages = ['/', '/about', '/contact']
-    server = ['http://10.0.5.1:80', 'http://10.0.5.2:80']
+    server = ['http://10.0.0.100:80']
 
     random_page = random.choice(pages)
     random_server = random.choice(server)
@@ -14,6 +15,9 @@ def curl_webserver():
     try:
         print('Curling', random_server + random_page)
         requests.get(random_server + random_page)
+        wait = random.randint(5, 10)
+        time.sleep(wait)
+        os.system("ip -s -s neigh flush all")
     except requests.exceptions.RequestException as e:
         pass
 
@@ -46,7 +50,7 @@ def random_ping():
 
 def random_traffic():
     while True:
-        id = random.choice([0, 1, 2, 3])
+        id = random.choice([0])
         if id == 0:
             curl_webserver()
         else:
