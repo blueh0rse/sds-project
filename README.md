@@ -10,19 +10,36 @@ The project aims to simulate attacks on a network that resembles an enterprise e
 
 ```
 .
+├── attacks
+│   └── dos.py
 ├── config
+│   ├── SDS-project_SnortRules.rules
+│   ├── snort.conf
 │   └── telegraf.conf
 ├── LICENSE
 ├── network
+│   ├── custom_switch.py
+│   ├── firewall_controller.py
+│   ├── sdn_switch.py
 │   └── topology.py
 ├── README.md
 ├── requirements.txt
+├── scripts
+│   ├── add-mirror.sh
+│   ├── add-port.sh
+│   ├── add-traffic-to-mirror.sh
+│   ├── links
+│   └── send-ICMP.py
 ├── setup
-│   └── setup.sh
-└── tools
-    └── ryu
+│   ├── config-network.sh
+│   ├── setup.sh
+│   └── start-mininet.sh
+├── SimpleAPI
+│   └── SimpleAPI.py
+└── SimpleSSH
+    └── SimpleSSH.py
 
-5 directories, 6 files
+7 directories, 21 files
 ```
 
 ## Requirements
@@ -38,8 +55,7 @@ To be able to run this project you must use an Ubuntu 20.04 VM.
 ```bash
 git clone https://github.com/blueh0rse/sds-project
 cd sds-project
-chmod -R +x ./setup/
-chmod -R +x ./scripts/
+chmod -R +x ./setup/ ./scripts/
 ```
 
 2. Create a virtual environment
@@ -59,7 +75,7 @@ source .venv/bin/activate
 ```bash
 (.venv)$ pip install -r requirements.txt
 or
-(.venv)$ sudo python3 -m pip install -r requirements.txt
+(.venv)$ python3 -m pip install -r requirements.txt
 ```
 
 5. Install required software
