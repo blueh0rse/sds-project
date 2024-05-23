@@ -40,9 +40,12 @@ class FirewallRules():
                 # 4 ad
                 # 5 web
                 # Allows communications within specific subnets
-                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
                 # Block communications between certain subnets
                 ## users ->x admins
@@ -57,14 +60,24 @@ class FirewallRules():
                 {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
 
                 # Allow communications from all users, workers, and admins VLANs to the AD and Web Servers
-                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.5.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.5.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
-                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.4.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.4.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
-                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5}
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.4.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.5.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.4.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.5.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
                 # pub1 access to web1 and web2
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
@@ -78,6 +91,8 @@ class FirewallRules():
 
                 # General DENY
                 {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"},
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "TCP", "actions": "DENY"},
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "UDP", "actions": "DENY"},
             ]
         }
     }
@@ -203,8 +218,8 @@ class DynamicFirewall(app_manager.RyuApp):
         self.http_response = {}
 
         self.load_balancer_stats = {
-            "00:00:00:00:03:01": 0,
-            "00:00:00:00:03:02": 0
+            "00:00:00:00:05:01": 0,
+            "00:00:00:00:05:02": 0
         }
 
 
@@ -718,15 +733,15 @@ class DynamicFirewall(app_manager.RyuApp):
                 print("TCP port scan")
             duration = 30
         elif int(sid) == 1100012: # TCP port scan (DMZ)
-            ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
-            bannedRule = self.ban_ip(ip)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
 
             if bannedRule is not None:
                 print("TCP port scan (DMZ)")
             duration = 30
         elif int(sid) == 1100014: # SSH connection (attack)
-            ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
-            bannedRule = self.ban_ip(ip)
+            ip = self.get_src_ip(_alert.pkt)
+            bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
             if bannedRule is not None:
                 print("SSH connection (attack)")
             duration = 30

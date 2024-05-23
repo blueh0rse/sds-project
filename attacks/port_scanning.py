@@ -5,7 +5,7 @@ def scan_ports(host, start_port, end_port):
     for port in range(start_port, end_port + 1):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.1)
+            s.settimeout(2)
             s.connect((host, port))
             print(f"Port {port} is open")
         except:

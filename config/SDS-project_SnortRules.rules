@@ -1,25 +1,25 @@
-alert ICMP 10.0.1.0/24 any -> 10.0.0.0/16 any (msg:"local ICMP flood (medium) --- 1100002"; sid:1100002; classtype:icmp-event; detection_filter:track by_src, count 400, seconds 5;)
-alert ICMP 10.0.1.0/24 any -> 10.0.0.0/16 any (msg:"local ICMP flood (light)  --- 1100001"; sid:1100001; classtype:icmp-event; detection_filter:track by_src, count 500, seconds 60;)
+alert ICMP 10.0.0.0/20 any -> 10.0.0.0/16 any (msg:"local ICMP flood (medium) --- 1100002"; sid:1100002; classtype:icmp-event; detection_filter:track by_src, count 400, seconds 5;)
+alert ICMP 10.0.0.0/20 any -> 10.0.0.0/16 any (msg:"local ICMP flood (light)  --- 1100001"; sid:1100001; classtype:icmp-event; detection_filter:track by_src, count 500, seconds 60;)
 
 
-alert ICMP 10.0.255.0/24 any -> 10.0.3.0/24 any (msg:"external ICMP flood (heavy)        --- 1100005"; sid:1100005; classtype:icmp-event; detection_filter:track by_src, count 300, seconds 1;)
-alert ICMP 10.0.255.0/24 any -> 10.0.3.0/24 any (msg:"external ICMP flood (medium)       --- 1100004"; sid:1100004; classtype:icmp-event; detection_filter:track by_src, count 400, seconds 5;)
-alert ICMP 10.0.255.0/24 any -> 10.0.3.0/24 any (msg:"external ICMP flood (light)        --- 1100003"; sid:1100003; classtype:icmp-event; detection_filter:track by_src, count 500, seconds 60;)
-alert ICMP 10.0.255.0/24 any -> 10.0.3.0/24 any (msg:"external ICMP flood (dst tracking) --- 1100006"; sid:1100006; classtype:icmp-event; detection_filter:track by_dst, count 500, seconds 40;)
+alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (heavy)        --- 1100005"; sid:1100005; classtype:icmp-event; detection_filter:track by_src, count 300, seconds 1;)
+alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (medium)       --- 1100004"; sid:1100004; classtype:icmp-event; detection_filter:track by_src, count 400, seconds 5;)
+alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (light)        --- 1100003"; sid:1100003; classtype:icmp-event; detection_filter:track by_src, count 500, seconds 60;)
+alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (dst tracking) --- 1100006"; sid:1100006; classtype:icmp-event; detection_filter:track by_dst, count 500, seconds 40;)
 
 
-alert TCP any any -> 10.0.3.0/24 80 (msg:"TCP flood (light)        --- 1100007"; sid:1100007; classtype:tcp-connection; detection_filter:track by_src, count 300, seconds 1;)
-alert TCP any any -> 10.0.3.0/24 80 (msg:"TCP flood (medium)       --- 1100008"; sid:1100008; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
-alert TCP any any -> 10.0.3.0/24 80 (msg:"TCP flood (heavy)        --- 1100009"; sid:1100009; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
-alert TCP any any -> 10.0.3.0/24 80 (msg:"TCP flood (dst tracking) --- 1100010"; sid:1100010; classtype:tcp-connection; detection_filter:track by_dst, count 500, seconds 40;)
+alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (light)        --- 1100007"; sid:1100007; classtype:tcp-connection; detection_filter:track by_src, count 300, seconds 1;)
+alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (medium)       --- 1100008"; sid:1100008; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
+alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (heavy)        --- 1100009"; sid:1100009; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
+alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (dst tracking) --- 1100010"; sid:1100010; classtype:tcp-connection; detection_filter:track by_dst, count 500, seconds 40;)
 
 
-alert TCP any any -> 10.0.2.0/24 any (msg:"TCP port scan       --- 1100011"; sid:1100011; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
-alert TCP any any -> 10.0.0.100/32 any (msg:"TCP port scan (DMZ) --- 1100012"; sid:1100012; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
+alert TCP any any -> 10.0.4.0/24 any (msg:"TCP port scan       --- 1100011"; sid:1100011; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
+alert TCP any any -> 10.0.5.0/24 any (msg:"TCP port scan (DMZ) --- 1100012"; sid:1100012; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
 
 
-alert TCP 10.0.1.0/24 any   -> 10.0.2.0/24 2222 (msg:"SSH connection (log)  --- 1100013"; sid:1100013; classtype:tcp-connection;)
-alert TCP 10.0.1.0/24 any -> 10.0.2.0/24 2222 (msg:"SSH connection (attack) --- 1100014"; sid:1100014; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
+alert TCP 10.0.0.0/20 any   -> 10.0.4.0/24 2222 (msg:"SSH connection (log)  --- 1100013"; sid:1100013; classtype:tcp-connection;)
+alert TCP 10.0.0.0/20 any -> 10.0.4.0/24 2222 (msg:"SSH connection (attack) --- 1100014"; sid:1100014; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
 
 
 alert ICMP any any -> 255.255.255.255/32 any (msg:"failed SSH connection retries --- 1100016"; sid:1100016; classtype:icmp-event; detection_filter:track by_src, count 5, seconds 60;)
