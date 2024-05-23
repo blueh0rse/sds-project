@@ -34,4 +34,7 @@ alert TCP any any -> 10.0.0.100/32 80 (msg:"HTTP (log)  --- 1100019"; sid:110001
 alert TCP any any -> any any (msg:"TCP port scan (log)  --- 1100020"; sid:1100020; classtype:tcp-connection;)
 
 
+alert TCP any any -> any 80 (msg:"HTTP LoadBalancer (Log)  --- 1100021"; sid:1100021;)
+
+
 alert ICMP 255.255.255.255/32 any -> any any (msg:"Debug code --- 1110000"; sid:1110000; classtype:icmp-event;)
