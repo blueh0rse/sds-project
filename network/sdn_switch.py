@@ -160,24 +160,25 @@ class DynamicFirewall(app_manager.RyuApp):
             }
         }
         self.port_scans = {
-            "10.0.1.4": 5
+            "10.0.1.4": {
+                "10.0.2.1": 5
+            }
         }
         self.ping_log = {
             "10.0.1.1":{
-                "packets_received": 100, #packets received
-                "packets_transmitted": 120, #packets transmitted
-                "percent_packet_loss": 0, #packet loss
-                "result_code": 200, # result code
-                "URL": "10.0.2.1"
+                "10.0.2.1": {
+                    "packets_received": 100, #packets received
+                    "packets_transmitted": 120, #packets transmitted
+                    "percent_packet_loss": 0, #packet loss
                 }
+            }
         }
-        self.http_reponse = {
+        self.http_response = {
             "10.0.1.1" : {
-                "method" : "GET",
-                "result" : "connection_successfull",
-                "result_code" : 1,
-                "result_type" : "succesfull",
-                "server" : "http://10.0.3.2"
+                "10.0.3.2": {
+                    "packets_received": 100, #packets received
+                    "packets_transmitted": 120, #packets transmitted
+                }
             }
         }
 
@@ -194,10 +195,10 @@ class DynamicFirewall(app_manager.RyuApp):
 
     #ToDo Port scan is working with hardcoded data , needs actual testing , PING and HTTP_RES messages are not sent.
     def _send_stats(self):
-        PORT_SSH_MSG = "ssh,src_ip=%s,dst_ip=%s repetitions=%d %d"
-        PORT_SCAN_MSG = "port_scan,src_ip=%s repetitions=%d %d"
-        PING_MSG = "ping,host=%s,URL=%s,packets_received=%d,packets_transmitted=%d,percent_packet_loss=%.2f result_code=%d %d"
-        HTTP_RES_MSG = "http_response,host=%s,method=%s,result=%s,result_code=%d,result_type=%s server=%s %d"
+        SSH_MSG = "ssh,src_ip=%s,dst_ip=%s repetitions=%d %d"
+        PORT_SCAN_MSG = "port_scan,src_ip=%s,dst_ip=%s repetitions=%d %d"
+        PING_MSG = "ping,src_ip=%s,dst_ip=%s packets_received=%d,packets_transmitted=%d,percent_packet_loss=%.2f %d"
+        HTTP_MSG = "http,src_ip=%s,dst_ip=%s packets_received=%d,packets_transmitted=%d %d"
 
         def send_udp_message(message):
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -206,42 +207,38 @@ class DynamicFirewall(app_manager.RyuApp):
         for src_ip in self.ssh_connections:
             for dst_ip in self.ssh_connections[src_ip]:
                 timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
-                msg = PORT_SSH_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
+                msg = SSH_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
                 send_udp_message(msg)
 
         for src_ip in self.port_scans:
-            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
-            msg = PORT_SCAN_MSG % (src_ip, self.port_scans[src_ip], timestamp)
-            send_udp_message(msg)
+            for dst_ip in self.port_scans[src_ip]:
+                timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+                msg = PORT_SCAN_MSG % (src_ip, dst_ip, self.port_scans[src_ip][dst_ip], timestamp)
+                send_udp_message(msg)
 
         for src_ip in self.ping_log:
-            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
-            packets_received = self.ping_log[src_ip]["packets_received"]
-            packets_transmitted = self.ping_log[src_ip]["packets_transmitted"]
-            percent_packet_loss = ((packets_transmitted - packets_received) / packets_transmitted) * 100 if packets_transmitted > 0 else 0
-            self.ping_log[src_ip]["percent_packet_loss"] = percent_packet_loss  # Update the dictionary with the calculated value
-            result_code = self.ping_log[src_ip]["result_code"]
-            url = self.ping_log[src_ip]["URL"]
-            host = src_ip
+            for dst_ip in self.ping_log[src_ip]:
+                timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+                packets_received = self.ping_log[src_ip][dst_ip]["packets_received"]
+                packets_transmitted = self.ping_log[src_ip][dst_ip]["packets_transmitted"]
+                percent_packet_loss = self.ping_log[src_ip][dst_ip]["percent_packet_loss"]
 
-            msg = PING_MSG % (host,url,packets_received,packets_transmitted,percent_packet_loss,result_code, timestamp)
-            send_udp_message(msg)
+                msg = PING_MSG % (src_ip, dst_ip, packets_received, packets_transmitted, percent_packet_loss, timestamp)
+                send_udp_message(msg)
 
-        for src_ip in self.http_reponse:
-            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
-            method = self.http_reponse[src_ip]["method"]
-            result = self.http_reponse[src_ip]["result"]
-            result_code_http = self.http_reponse[src_ip]["result_code"]
-            result_type = self.http_reponse[src_ip]["result_type"]
-            server = self.http_reponse[src_ip]["server"]
+        for src_ip in self.http_response:
+            for dst_ip in self.http_response[src_ip]:
+                timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+                packets_received = self.http_response[src_ip][dst_ip]["packets_received"]
+                packets_transmitted = self.http_response[src_ip][dst_ip]["packets_transmitted"]
 
-            msg = HTTP_RES_MSG % (src_ip,method,result, result_code_http, result_type,server,timestamp)
-            send_udp_message(msg)
+                msg = HTTP_MSG % (src_ip, dst_ip, packets_received, packets_transmitted, timestamp)
+                send_udp_message(msg)
 
         self.ssh_connections = {}
         self.port_scans = {}
         self.ping_log = {}
-        self.http_reponse = {}
+        self.http_response = {}
 
     # Used with Firewall
     def stats_reply_handler(self, ev):
@@ -357,13 +354,16 @@ class DynamicFirewall(app_manager.RyuApp):
     def get_snort_sid(self, string):
         return str(string.split(" --- ")[1].rstrip('\x00')).strip()
 
-    def get_src_ip(self, pkt):
+    def get_src_ip(self, pkt, protocol = ipv4.ipv4):
         pkt = packet.Packet(array.array('B', pkt))
-        return pkt.get_protocol(ipv4.ipv4).src
+        return pkt.get_protocol(protocol).src
 
-    def get_dst_ip(self, pkt):
+    def get_dst_ip(self, pkt, protocol = ipv4.ipv4):
         pkt = packet.Packet(array.array('B', pkt))
-        return pkt.get_protocol(ipv4.ipv4).dst
+        return pkt.get_protocol(protocol).dst
+
+    def get_bytes(self, pkt):
+        return len(pkt)
 
     def get_response(self, res):
         tmp = json.loads(res.body.decode())
@@ -477,24 +477,24 @@ class DynamicFirewall(app_manager.RyuApp):
             delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 60))
             delayed_remove_flow_thread.start()
 
-        if ev.msg.datapath.id in [4, 10]:
-            # Handle ARP Packet
-            if eth.ethertype == ether_types.ETH_TYPE_ARP:
-                arp_header = pkt.get_protocol(arp.arp)
-                if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
-                    # Build an ARP reply packet using source IP and source MAC
-                    reply_packet = self.arp_reply(arp_header.src_ip, arp_header.src_mac)
-                    actions = [parser.OFPActionOutput(in_port)]
-                    packet_out = parser.OFPPacketOut(datapath=datapath,
-                                                    in_port=ofproto.OFPP_ANY,
-                                                    data=reply_packet.data,
-                                                    actions=actions,
-                                                    buffer_id=ofproto.OFP_NO_BUFFER)
-                    datapath.send_msg(packet_out)
-                    self.logger.info("Sent the ARP reply packet")
-                    return
+        # if ev.msg.datapath.id in [4, 10]:
+        # Handle ARP Packet
+        if eth.ethertype == ether_types.ETH_TYPE_ARP:
+            arp_header = pkt.get_protocol(arp.arp)
+            if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
+                # Build an ARP reply packet using source IP and source MAC
+                reply_packet = self.arp_reply(arp_header.src_ip, arp_header.src_mac)
+                actions = [parser.OFPActionOutput(in_port)]
+                packet_out = parser.OFPPacketOut(datapath=datapath,
+                                                in_port=ofproto.OFPP_ANY,
+                                                data=reply_packet.data,
+                                                actions=actions,
+                                                buffer_id=ofproto.OFP_NO_BUFFER)
+                datapath.send_msg(packet_out)
+                self.logger.info("Sent the ARP reply packet")
+                return
 
-        if ev.msg.datapath.id == 10:
+        if ev.msg.datapath.id in [10]:
             # Handle TCP Packet
             if eth.ethertype == ETH_TYPE_IP:
                 ip_header = pkt.get_protocol(ipv4.ipv4)
@@ -606,8 +606,8 @@ class DynamicFirewall(app_manager.RyuApp):
             self.fwc.packet_in_handler(ev.msg)
         elif ev.msg.datapath.id in [2, 3, 4, 10]:
             self.load_balancer_packet_in_hanlder(ev)
-        else:
-            self.snort_packet_in_handler(ev.msg)
+        # else:
+        #     self.snort_packet_in_handler(ev.msg)
 
     @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)
     def _dump_alert(self, ev):
@@ -678,36 +678,34 @@ class DynamicFirewall(app_manager.RyuApp):
             if bannedRule is not None:
                 print("TCP flood (dst tracking)")
             duration = 30
-        # ToDo needs to be tested if it's actually working , sending hardcoded info works , but if trying to to scan packets are blocked
         elif int(sid) == 1100011: # TCP port scan
-            print("i am here")
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
 
             if not (str(ip) in self.port_scans):
                 self.port_scans[str(ip)] = {}
 
-            if str(ip) in self.port_scans[str(ip)]:
-                self.port_scans[str(ip)] += 1
+            dst_ip = self.get_dst_ip(_alert.pkt)
+            if str(dst_ip) in self.port_scans[str(ip)]:
+                self.port_scans[str(ip)][str(dst_ip)] += 1
             else:
-                self.port_scans[str(ip)] = 1
+                self.port_scans[str(ip)][str(dst_ip)] = 1
 
             if bannedRule is not None:
                 print("TCP port scan")
             duration = 30
-        # ToDo same as above
         elif int(sid) == 1100012: # TCP port scan (DMZ)
-            print("i am here dmz")
             ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
             bannedRule = self.ban_ip(ip)
 
             if not (str(ip) in self.port_scans):
                 self.port_scans[str(ip)] = {}
 
-            if str(ip) in self.port_scans[str(ip)]:
-                self.port_scans[str(ip)] += 1
+            dst_ip = self.get_dst_ip(_alert.pkt)
+            if str(dst_ip) in self.port_scans[str(ip)]:
+                self.port_scans[str(ip)][str(dst_ip)] += 1
             else:
-                self.port_scans[str(ip)] = 1
+                self.port_scans[str(ip)][str(dst_ip)] = 1
 
             if bannedRule is not None:
                 print("TCP port scan (DMZ)")
@@ -734,8 +732,6 @@ class DynamicFirewall(app_manager.RyuApp):
             duration = 30
 
         elif int(sid) == 1100013: # SSH connection (log)
-            print("SSH connection (log)")
-            print (self.ssh_connections)
             if not (str(self.get_src_ip(_alert.pkt)) in self.ssh_connections):
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))] = {}
 
@@ -743,53 +739,63 @@ class DynamicFirewall(app_manager.RyuApp):
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] += 1
             else:
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] = 1
-        # ToDo it is not possible to send hardcoded data , possible problem with msg , needs to be tested
-        elif int(sid) == 1100018: # TCMP Ping (log)
-            print("PING Log")
-            print (self.ping_log)
-            host_ip = self.get_src_ip(_alert.pkt)
-            dest_ip = self.get_dst_ip(_alert.pkt)
-            if not (str(ip) in self.ping_log):
-                self.ping_log[host_ip] = {
-                "packets_received": 0,
-                "packets_transmitted": 0,
-                "percent_packet_loss": 0,
-                "result_code": 0,
-                "URL": "unknown"
-            }
+        elif int(sid) == 1100018: # ICMP Ping (log)
+            src_ip = self.get_src_ip(_alert.pkt)
+            dst_ip = self.get_dst_ip(_alert.pkt)
 
-            if str(ip) in self.ping_log:
-                self.ping_log[host_ip]["packets_received"] += 1
-                self.ping_log[host_ip]["packets_transmitted"] += 1
-                self.ping_log[host_ip]["result_code"] = _alert.result_code
-                self.ping_log[host_ip]["URL"] = dest_ip
+            if str(src_ip) not in self.ping_log:
+                self.ping_log[src_ip] = {}
+            if str(dst_ip) not in self.ping_log:
+                self.ping_log[dst_ip] = {}
+
+            if str(dst_ip) in self.ping_log[src_ip]:
+                self.ping_log[src_ip][dst_ip]["packets_transmitted"] += 1
             else:
-               if str(ip) in self.ping_log:
-                self.ping_log[host_ip]["packets_received"] = 1
-                self.ping_log[host_ip]["packets_transmitted"] = 1
-                self.ping_log[host_ip]["result_code"] = _alert.result_code
-                self.ping_log[host_ip]["URL"] = dest_ip
-        # ToDo needs testing , but msg is not working
-        elif int(sid) == 1100020:  # Assuming 1100020 is the SID for HTTP response (log)
-            print("HTTP Response (log)")
-            print(self.http_response)
+                self.ping_log[src_ip][dst_ip] = {
+                    "packets_received": 0,
+                    "packets_transmitted": 1,
+                    "percent_packet_loss": 0,
+                }
 
+            if str(src_ip) in self.ping_log[dst_ip]:
+                self.ping_log[dst_ip][src_ip]["packets_received"] += 1
+            else:
+                self.ping_log[dst_ip][src_ip] = {
+                    "packets_received": 1,
+                    "packets_transmitted": 0,
+                    "percent_packet_loss": 0,
+                }
+
+            src_transmitted = self.ping_log[src_ip][dst_ip]["packets_transmitted"]
+            src_received = self.ping_log[src_ip][dst_ip]["packets_received"]
+            self.ping_log[src_ip][dst_ip]["percent_packet_loss"] = ((src_transmitted - src_received) / src_transmitted) * 100 if src_transmitted > 0 else 0
+
+            dest_transmitted = self.ping_log[dst_ip][src_ip]["packets_transmitted"]
+            dest_received = self.ping_log[dst_ip][src_ip]["packets_received"]
+            self.ping_log[dst_ip][src_ip]["percent_packet_loss"] = ((dest_transmitted - dest_received) / dest_transmitted) * 100 if dest_transmitted > 0 else 0
+        elif int(sid) == 1100019:  # HTTP (log)
             src_ip = str(self.get_src_ip(_alert.pkt))
             dst_ip = str(self.get_dst_ip(_alert.pkt))
 
-            if src_ip not in self.http_response:
+            if not (str(src_ip) in self.http_response):
                 self.http_response[src_ip] = {}
+            if not (str(dst_ip) in self.http_response):
+                self.http_response[dst_ip] = {}
 
-            if dst_ip in self.http_response[src_ip]:
-                self.http_response[src_ip][dst_ip]["count"] += 1
+            if str(dst_ip) in self.http_response[src_ip]:
+                self.http_response[src_ip][dst_ip]["packets_transmitted"] += 1
             else:
-                # ToDo actual data needs to be used here and check if structure is okay
                 self.http_response[src_ip][dst_ip] = {
-                    "method": "GET",
-                    "result": "connection_successful",
-                    "result_code": _alert.result_code,
-                    "result_type": "successful",
-                    "server": dst_ip,
+                    "packets_received": 0,
+                    "packets_transmitted": 1
+                }
+
+            if str(src_ip) in self.http_response[dst_ip]:
+                self.http_response[dst_ip][src_ip]["packets_received"] += 1
+            else:
+                self.http_response[dst_ip][src_ip] = {
+                    "packets_received": 1,
+                    "packets_transmitted": 0
                 }
 
         elif int(sid) == 1110000: # Debugging

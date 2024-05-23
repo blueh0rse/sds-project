@@ -31,5 +31,4 @@ alert ICMP any any -> 254.254.254.254/32 any (msg:"API Honeypot detection  --- 1
 
 
 
-
 alert ICMP 255.255.255.255/32 any -> any any (msg:"Debug code --- 1110000"; sid:1110000; classtype:icmp-event;)
