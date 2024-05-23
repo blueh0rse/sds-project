@@ -164,11 +164,11 @@ mininet> xterm web1 web2
 ```
 
 ```bash
-web1> python3 SimpleAPI/SimpleAPI.py 10.0.3.1
+web1> python3 SimpleAPI/SimpleAPI.py 10.0.5.1
 ```
 
 ```bash
-web2> python3 SimpleAPI/SimpleAPI.py 10.0.3.2
+web2> python3 SimpleAPI/SimpleAPI.py 10.0.5.2
 ```
 
 3. Test private server
@@ -190,9 +190,9 @@ mininet> xterm pu1
 ```
 
 ```bash
-pu1> curl 10.0.0.100
-pu1> curl 10.0.0.100:80/about
-pu1> curl 10.0.0.100:80/contact
+pub1> curl 10.0.0.100
+pub1> curl 10.0.0.100:80/about
+pub1> curl 10.0.0.100:80/contact
 ```
 
 ### Performing the attacks
