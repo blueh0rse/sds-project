@@ -215,10 +215,10 @@ mininet> xterm h1
 ```
 
 ```bash
-h1> python3 attacks/port_scanning.py 10.0.2.1 0 300
+h1> python3 attacks/port_scanning.py 10.0.4.1 0 300
 ```
 ```bash
-h1> python3 attacks/port_scanning.py 10.0.2.1 10000 20000
+h1> python3 attacks/port_scanning.py 10.0.4.1 10000 20000
 ```
 
 2. ICMP flooding
