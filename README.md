@@ -154,8 +154,8 @@ mininet> h1 ping h2 -c 3
 
 ### TODO List
 
-- [] Finish presentation
-- [ ] Add Load balancer
+- [ ] Finish presentation
+- [x] Add Load balancer
 - [x] Add Monitoring
     - [x] ICMP requests
     - [x] TCP Port Scan

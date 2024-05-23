@@ -156,6 +156,11 @@ class DynamicFirewall(app_manager.RyuApp):
         self.ping_log = {}
         self.http_response = {}
 
+        self.load_balancer_stats = {
+            "00:00:00:00:03:01": 0,
+            "00:00:00:00:03:02": 0
+        }
+
 
     ################################
     ####### Helper Functions #######
@@ -332,6 +337,14 @@ class DynamicFirewall(app_manager.RyuApp):
         pkt = packet.Packet(array.array('B', pkt))
         return pkt.get_protocol(protocol).src
 
+    def get_src_mac(self, pkt, protocol = ethernet.ethernet):
+        pkt = packet.Packet(array.array('B', pkt))
+        return pkt.get_protocol(protocol).src
+
+    def get_dst_mac(self, pkt, protocol = ethernet.ethernet):
+        pkt = packet.Packet(array.array('B', pkt))
+        return pkt.get_protocol(protocol).dst
+
     def get_dst_ip(self, pkt, protocol = ipv4.ipv4):
         pkt = packet.Packet(array.array('B', pkt))
         return pkt.get_protocol(protocol).dst
@@ -441,32 +454,34 @@ class DynamicFirewall(app_manager.RyuApp):
 
         actions = [parser.OFPActionOutput(out_port)]
 
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst_mac, eth_src=src_mac)
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
-                return
-            else:
-                self.add_flow(datapath, 1, match, actions)
-            delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 14))
-            delayed_remove_flow_thread.start()
+        # if out_port != ofproto.OFPP_FLOOD:
+        #     match = parser.OFPMatch(in_port=in_port, eth_dst=dst_mac, eth_src=src_mac)
+        #     if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+        #         self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+        #         delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 14))
+        #         delayed_remove_flow_thread.start()
+        #         return
+        #     else:
+        #         self.add_flow(datapath, 1, match, actions)
+        #         delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 14))
+        #         delayed_remove_flow_thread.start()
 
-        # if ev.msg.datapath.id in [4, 10]:
+        if ev.msg.datapath.id in [4, 10]:
         # Handle ARP Packet
-        if eth.ethertype == ether_types.ETH_TYPE_ARP:
-            arp_header = pkt.get_protocol(arp.arp)
-            if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
-                # Build an ARP reply packet using source IP and source MAC
-                reply_packet = self.arp_reply(arp_header.src_ip, arp_header.src_mac)
-                actions = [parser.OFPActionOutput(in_port)]
-                packet_out = parser.OFPPacketOut(datapath=datapath,
-                                                in_port=ofproto.OFPP_ANY,
-                                                data=reply_packet.data,
-                                                actions=actions,
-                                                buffer_id=ofproto.OFP_NO_BUFFER)
-                datapath.send_msg(packet_out)
-                self.logger.info("Sent the ARP reply packet")
-                return
+            if eth.ethertype == ether_types.ETH_TYPE_ARP:
+                arp_header = pkt.get_protocol(arp.arp)
+                if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
+                    # Build an ARP reply packet using source IP and source MAC
+                    reply_packet = self.arp_reply(arp_header.src_ip, arp_header.src_mac)
+                    actions = [parser.OFPActionOutput(in_port)]
+                    packet_out = parser.OFPPacketOut(datapath=datapath,
+                                                    in_port=ofproto.OFPP_ANY,
+                                                    data=reply_packet.data,
+                                                    actions=actions,
+                                                    buffer_id=ofproto.OFP_NO_BUFFER)
+                    datapath.send_msg(packet_out)
+                    self.logger.info("Sent the ARP reply packet")
+                    return
 
         if ev.msg.datapath.id in [10]:
             # Handle TCP Packet
@@ -496,10 +511,7 @@ class DynamicFirewall(app_manager.RyuApp):
         # Making the load balancer IP as source IP
         src_ip = self.VIRTUAL_IP
 
-        if haddr_to_int(arp_target_mac) % 2 == 1:
-            src_mac = self.SERVER1_MAC
-        else:
-            src_mac = self.SERVER2_MAC
+        src_mac = min(self.load_balancer_stats, key=self.load_balancer_stats.get)
         self.logger.info("Selected server MAC: " + src_mac)
 
         pkt = packet.Packet()
@@ -756,6 +768,7 @@ class DynamicFirewall(app_manager.RyuApp):
                     "packets_received": 1,
                     "packets_transmitted": 0
                 }
+
         elif int(sid) == 1100020:  # TCP port scanning (log)
             ip = self.get_src_ip(_alert.pkt)
 
@@ -767,6 +780,17 @@ class DynamicFirewall(app_manager.RyuApp):
                 self.port_scans[str(ip)][str(dst_ip)] += 1
             else:
                 self.port_scans[str(ip)][str(dst_ip)] = 1
+
+        elif int(sid) == 1100021:  # HTTP Load Balancer (log)
+            src_mac = self.get_src_mac(_alert.pkt)
+            dst_mac = self.get_dst_mac(_alert.pkt)
+
+            if src_mac in self.load_balancer_stats:
+                self.load_balancer_stats[src_mac] += 1
+            if dst_mac in self.load_balancer_stats:
+                self.load_balancer_stats[dst_mac] += 1
+
+            print(self.load_balancer_stats)
 
         elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
