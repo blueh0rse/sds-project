@@ -167,9 +167,15 @@ ad> python3 SimpleSSH/SimpleSSH.py 10.0.4.1 2222
 ```bash
 mininet> xterm web1 web2
 ```
+```bash
+web1> source .venv/bin/activate
+```
 
 ```bash
 web1> python3 SimpleAPI/SimpleAPI.py 10.0.5.1
+```
+```bash
+web2> source .venv/bin/activate
 ```
 
 ```bash
@@ -179,11 +185,11 @@ web2> python3 SimpleAPI/SimpleAPI.py 10.0.5.2
 3. Test private server
 
 ```bash
-mininet> xterm h1
+mininet> xterm h4
 ```
 
 ```bash
-h1> telnet 10.0.4.1 2222
+h4> telnet 10.0.4.1 2222
 telnet> admin
 telnet> admin
 ```
@@ -209,10 +215,10 @@ mininet> xterm h1
 ```
 
 ```bash
-h1> python3 attacks/port_scanning.py 10.0.2.1 0 300
+h1> python3 attacks/port_scanning.py 10.0.4.1 0 300
 ```
 ```bash
-h1> python3 attacks/port_scanning.py 10.0.2.1 10000 20000
+h1> python3 attacks/port_scanning.py 10.0.4.1 10000 20000
 ```
 
 2. ICMP flooding
