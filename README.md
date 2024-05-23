@@ -185,11 +185,11 @@ web2> python3 SimpleAPI/SimpleAPI.py 10.0.5.2
 3. Test private server
 
 ```bash
-mininet> xterm h1
+mininet> xterm h4
 ```
 
 ```bash
-h1> telnet 10.0.4.1 2222
+h4> telnet 10.0.4.1 2222
 telnet> admin
 telnet> admin
 ```
