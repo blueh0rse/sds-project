@@ -84,7 +84,7 @@ or
 (.venv)$ ./setup/setup.sh
 ```
 
-5. 1. Manually install snort
+6. Manually install snort
 
 ```bash
 (.venv)$ sudo apt install -y snort
@@ -92,7 +92,7 @@ or
 > [!Important]
 > You must specify the interface `ens33`, or related, and the subnetwork `(10.0.0.0/16)`
 
-6. Start the network using `mininet`
+7. Start the network using `mininet`
 
 ```bash
 (.venv)$ ./setup/start-mininet.sh
@@ -135,12 +135,17 @@ c0
 8. Configure the network and initialize Ryu and Snort
 
 ```bash
+# in a new terminal
 (.venv)$ ./setup/config-network.sh
+...
+get_log_status
+Waiters updated!
+Waiters updated!
 ```
 
 ### Network rules
 
-1. Start the controlet using `ryu`
+1. Start the controler using `ryu`
 
 ```bash
 (.venv)$ sudo ryu-manager --verbose tools/ryu/ryu/app/simple_monitor_13.py
@@ -150,6 +155,30 @@ c0
 
 ```bash
 mininet> h1 ping h2 -c 3
+```
+
+## Topology
+
+```text
+                              +------+
+                         +----+  c0   +----+
+                         |    +-------+    |
+                         |                 |
+                   +-----+-----+     +-----+---------+
+                   | sGeneral  |     | sLoadBalancer |
+                   ++----+-----+     +---+--------+--+
+                   |      |              |        |
+          +--------+      |           +-+--+    +-+--+
+          |               |           |web1|    |web2|
+    +-----+-----+   +-----+------+    +----+    +----+
+    | sUsers    |   |sPrivateServ|
+    +-----+-----+   +-----+------+
+          |               |
+   +------+-------+       |
+   | h1 : h4 : h7 |     +-+-+
+   | h2 : h5 : h8 |     |ad |
+   | h3 : h6 : h9 |     +---+
+   +--------------+  
 ```
 
 ### TODO List
