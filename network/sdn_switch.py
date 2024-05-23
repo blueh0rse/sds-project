@@ -149,12 +149,35 @@ class DynamicFirewall(app_manager.RyuApp):
 
         self.mac_to_port = {}
         self.monitor_thread = hub.spawn(self._monitor)
+        
+        #testing purpose , to be deleted
         self.ssh_connections = {
             "10.0.1.1": { # Src IP
                 "10.0.2.1" : 1, # Dst IP
                 "10.0.1.2": 5,  # Dst IP
             },
             "10.0.2.1": {
+            }
+        }
+        self.port_scans = {
+            "10.0.1.4": 5
+        }
+        self.ping_log = {
+            "10.0.1.1":{
+                "packets_received": 100, #packets received
+                "packets_transmitted": 120, #packets transmitted
+                "percent_packet_loss": 0, #packet loss
+                "result_code": 200, # result code
+                "URL": "10.0.2.1"
+                }
+        }
+        self.http_reponse = {
+            "10.0.1.1" : {
+                "method" : "GET",
+                "result" : "connection_successfull",
+                "result_code" : 1,
+                "result_type" : "succesfull",
+                "server" : "http://10.0.3.2"
             }
         }
 
@@ -169,17 +192,56 @@ class DynamicFirewall(app_manager.RyuApp):
             self._send_stats()
             hub.sleep(10)
 
+    #ToDo Port scan is working with hardcoded data , needs actual testing , PING and HTTP_RES messages are not sent.
     def _send_stats(self):
-        PORT_MSG = "ssh,src_ip=%s,dst_ip=%s repetitions=%d %d"
+        PORT_SSH_MSG = "ssh,src_ip=%s,dst_ip=%s repetitions=%d %d"
+        PORT_SCAN_MSG = "port_scan,src_ip=%s repetitions=%d %d"
+        PING_MSG = "ping,host=%s,URL=%s,packets_received=%d,packets_transmitted=%d,percent_packet_loss=%.2f result_code=%d %d"
+        HTTP_RES_MSG = "http_response,host=%s,method=%s,result=%s,result_code=%d,result_type=%s server=%s %d"
+
+        def send_udp_message(message):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.sendto(message.encode(), (self.UDP_IP, self.UDP_PORT))
 
         for src_ip in self.ssh_connections:
             for dst_ip in self.ssh_connections[src_ip]:
                 timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
-                msg = PORT_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT))
+                msg = PORT_SSH_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
+                send_udp_message(msg)
+        
+        for src_ip in self.port_scans:
+            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+            msg = PORT_SCAN_MSG % (src_ip, self.port_scans[src_ip], timestamp)
+            send_udp_message(msg)
+
+        for src_ip in self.ping_log:
+            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+            packets_received = self.ping_log[src_ip]["packets_received"]
+            packets_transmitted = self.ping_log[src_ip]["packets_transmitted"]
+            percent_packet_loss = ((packets_transmitted - packets_received) / packets_transmitted) * 100 if packets_transmitted > 0 else 0
+            self.ping_log[src_ip]["percent_packet_loss"] = percent_packet_loss  # Update the dictionary with the calculated value
+            result_code = self.ping_log[src_ip]["result_code"]
+            url = self.ping_log[src_ip]["URL"]
+            host = src_ip
+            
+            msg = PING_MSG % (host,url,packets_received,packets_transmitted,percent_packet_loss,result_code, timestamp)
+            send_udp_message(msg)
+
+        for src_ip in self.http_reponse:
+            timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
+            method = self.http_reponse[src_ip]["method"]
+            result = self.http_reponse[src_ip]["result"]
+            result_code_http = self.http_reponse[src_ip]["result_code"]
+            result_type = self.http_reponse[src_ip]["result_type"]
+            server = self.http_reponse[src_ip]["server"]
+
+            msg = HTTP_RES_MSG % (src_ip,method,result, result_code_http, result_type,server,timestamp)
+            send_udp_message(msg)
 
         self.ssh_connections = {}
+        self.port_scans = {}
+        self.ping_log = {}
+        self.http_reponse = {}
 
     # Used with Firewall
     def stats_reply_handler(self, ev):
@@ -616,15 +678,37 @@ class DynamicFirewall(app_manager.RyuApp):
             if bannedRule is not None:
                 print("TCP flood (dst tracking)")
             duration = 30
+        # ToDo needs to be tested if it's actually working , sending hardcoded info works , but if trying to to scan packets are blocked
         elif int(sid) == 1100011: # TCP port scan
+            print("i am here")
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
+
+            if not (str(ip) in self.port_scans):
+                self.port_scans[str(ip)] = {}
+
+            if str(ip) in self.port_scans[str(ip)]:
+                self.port_scans[str(ip)] += 1
+            else:
+                self.port_scans[str(ip)] = 1
+            
             if bannedRule is not None:
                 print("TCP port scan")
             duration = 30
+        # ToDo same as above
         elif int(sid) == 1100012: # TCP port scan (DMZ)
+            print("i am here dmz")
             ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
             bannedRule = self.ban_ip(ip)
+
+            if not (str(ip) in self.port_scans):
+                self.port_scans[str(ip)] = {}
+
+            if str(ip) in self.port_scans[str(ip)]:
+                self.port_scans[str(ip)] += 1
+            else:
+                self.port_scans[str(ip)] = 1
+
             if bannedRule is not None:
                 print("TCP port scan (DMZ)")
             duration = 30
@@ -659,6 +743,54 @@ class DynamicFirewall(app_manager.RyuApp):
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] += 1
             else:
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] = 1
+        # ToDo it is not possible to send hardcoded data , possible problem with msg , needs to be tested
+        elif int(sid) == 1100018: # TCMP Ping (log)
+            print("PING Log")
+            print (self.ping_log)
+            host_ip = self.get_src_ip(_alert.pkt)
+            dest_ip = self.get_dst_ip(_alert.pkt)
+            if not (str(ip) in self.ping_log):
+                self.ping_log[host_ip] = {
+                "packets_received": 0,
+                "packets_transmitted": 0,
+                "percent_packet_loss": 0,
+                "result_code": 0,
+                "URL": "unknown" 
+            }
+
+            if str(ip) in self.ping_log:
+                self.ping_log[host_ip]["packets_received"] += 1  
+                self.ping_log[host_ip]["packets_transmitted"] += 1
+                self.ping_log[host_ip]["result_code"] = _alert.result_code    
+                self.ping_log[host_ip]["URL"] = dest_ip  
+            else:
+               if str(ip) in self.ping_log:
+                self.ping_log[host_ip]["packets_received"] = 1  
+                self.ping_log[host_ip]["packets_transmitted"] = 1
+                self.ping_log[host_ip]["result_code"] = _alert.result_code   
+                self.ping_log[host_ip]["URL"] = dest_ip 
+        # ToDo needs testing , but msg is not working
+        elif int(sid) == 1100020:  # Assuming 1100020 is the SID for HTTP response (log)
+            print("HTTP Response (log)")
+            print(self.http_response)
+
+            src_ip = str(self.get_src_ip(_alert.pkt))
+            dst_ip = str(self.get_dst_ip(_alert.pkt))
+        
+            if src_ip not in self.http_response:
+                self.http_response[src_ip] = {}
+
+            if dst_ip in self.http_response[src_ip]:
+                self.http_response[src_ip][dst_ip]["count"] += 1
+            else:
+                # ToDo actual data needs to be used here and check if structure is okay
+                self.http_response[src_ip][dst_ip] = {
+                    "method": "GET",  
+                    "result": "connection_successful",  
+                    "result_code": _alert.result_code,  
+                    "result_type": "successful",  
+                    "server": dst_ip,
+                }
 
         elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
