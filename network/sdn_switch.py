@@ -34,17 +34,39 @@ class FirewallRules():
         1: {
             "dpid": "0000000000000001",
             "rules": [
-                # General ICMP rules
-                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
+                # 1 users
+                # 2 workers
+                # 3 admin
+                # 4 ad
+                # 5 web
+                # Allows communications within specific subnets
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
 
-                # Only h1 was access to pad
-                {"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.1.1/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.1.1/32", "nw_dst": "10.0.2.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
-                {"nw_src": "10.0.2.1/32", "nw_dst": "10.0.1.1/32", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
+                # Block communications between certain subnets
+                ## users ->x admins
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ALL", "actions": "DENY", "priority": 10},
+                ## workers ->x admins
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ALL", "actions": "DENY", "priority": 10},
 
-                # pu1 access to ws1 and ws2
+                # Allow communications between certain subnets
+                ## admins -> users
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.1.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                ## admins -> workers
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.2.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+
+                # Allow communications from all users, workers, and admins VLANs to the AD and Web Servers
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.1.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.2.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.4.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5},
+                {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.5.0/24", "nw_proto": "ALL", "actions": "ALLOW", "priority": 5}
+
+                # pub1 access to web1 and web2
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.3.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.255.0/24", "nw_dst": "10.0.0.100/32", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
                 {"nw_src": "10.0.3.0/24", "nw_dst": "10.0.255.0/24", "nw_proto": "ICMP", "actions": "ALLOW", "priority": 5},
@@ -55,7 +77,7 @@ class FirewallRules():
                 {"nw_src": "10.0.0.100/24", "nw_dst": "10.0.255.0/24", "nw_proto": "TCP", "actions": "ALLOW", "priority": 5},
 
                 # General DENY
-                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"}
+                {"nw_src": "10.0.0.0/16", "nw_dst": "10.0.0.0/16", "nw_proto": "ICMP", "actions": "DENY"},
             ]
         }
     }
@@ -77,11 +99,35 @@ class FirewallRules():
             "int": 1,
             "dpid": "0000000000000001"
         },
+        "10.0.2.2": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.2.3": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
         "10.0.3.1": {
             "int": 1,
             "dpid": "0000000000000001"
         },
         "10.0.3.2": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.3.3": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.4.1": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.5.1": {
+            "int": 1,
+            "dpid": "0000000000000001"
+        },
+        "10.0.5.2": {
             "int": 1,
             "dpid": "0000000000000001"
         },
@@ -112,11 +158,11 @@ class DynamicFirewall(app_manager.RyuApp):
 
     VIRTUAL_IP = '10.0.0.100'  # The virtual server IP
 
-    SERVER1_IP = '10.0.3.1'
-    SERVER1_MAC = '00:00:00:00:03:01'
+    SERVER1_IP = '10.0.5.1'
+    SERVER1_MAC = '00:00:00:00:05:01'
     SERVER1_PORT = 1
-    SERVER2_IP = '10.0.3.2'
-    SERVER2_MAC = '00:00:00:00:03:02'
+    SERVER2_IP = '10.0.5.2'
+    SERVER2_MAC = '00:00:00:00:05:02'
     SERVER2_PORT = 2
 
     UDP_IP = "127.0.0.1"
