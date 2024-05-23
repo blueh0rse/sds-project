@@ -1,43 +1,58 @@
 #!/bin/bash
 
-# change this
+# Set the working directory
 workdir=~/sds/sds-project
 
-# create directories
-cd $workdir
-mkdir tools
-mkdir tmp
+# Create directories if they don't already exist
+mkdir -p "$workdir/tools"
+mkdir -p "$workdir/tmp"
 
-# install ryu
-cd $workdir/tools/
-git clone https://github.com/osrg/ryu.git
-cd $workdir/tools/ryu
-sudo pip3 install ryu
-
-# install influxdb
-cd $workdir/tmp
-wget https://dl.influxdata.com/influxdb/releases/influxdb_1.8.4_amd64.deb
-sudo dpkg -i influxdb_1.8.4_amd64.deb
+# Update the package list
 sudo apt update
+
+# Install Ryu if not already installed
+if [ ! -d "$workdir/tools/ryu" ]; then
+    cd $workdir/tools/
+    git clone https://github.com/osrg/ryu.git
+    cd ryu
+    sudo pip3 install ryu
+else
+    echo "Ryu is already installed."
+fi
+
+# Install InfluxDB if not already installed
+if [ ! -f "$workdir/tmp/influxdb_1.8.4_amd64.deb" ]; then
+    cd $workdir/tmp
+    wget https://dl.influxdata.com/influxdb/releases/influxdb_1.8.4_amd64.deb
+fi
+
+sudo dpkg -i $workdir/tmp/influxdb_1.8.4_amd64.deb
 sudo apt install -y python3-influxdb
-rm influxdb_1.8.4_amd64.deb
 sudo systemctl start influxdb
 
-# install telegraf
-cd $workdir/tmp
-wget https://dl.influxdata.com/telegraf/releases/telegraf_1.17.3-1_amd64.deb
-sudo dpkg -i telegraf_1.17.3-1_amd64.deb
-rm telegraf_1.17.3-1_amd64.deb
-sudo mv /etc/telegraf/telegraf.conf /etc/telegraf/telegraf.conf.bak
+# Install Telegraf if not already installed
+if [ ! -f "$workdir/tmp/telegraf_1.17.3-1_amd64.deb" ]; then
+    cd $workdir/tmp
+    wget https://dl.influxdata.com/telegraf/releases/telegraf_1.17.3-1_amd64.deb
+fi
+
+sudo dpkg -i $workdir/tmp/telegraf_1.17.3-1_amd64.deb
+
+if [ -f "/etc/telegraf/telegraf.conf" ]; then
+    sudo mv /etc/telegraf/telegraf.conf /etc/telegraf/telegraf.conf.bak
+fi
+
 sudo cp $workdir/config/telegraf.conf /etc/telegraf/
 sudo systemctl restart telegraf
 
-# install grafana
-cd $workdir/tmp
+# Install Grafana if not already installed
+if [ ! -f "$workdir/tmp/grafana_7.4.3_amd64.deb" ]; then
+    cd $workdir/tmp
+    wget https://dl.grafana.com/oss/release/grafana_7.4.3_amd64.deb
+fi
+
 sudo apt install -y libfontconfig1
-wget https://dl.grafana.com/oss/release/grafana_7.4.3_amd64.deb
-sudo dpkg -i grafana_7.4.3_amd64.deb
-rm grafana_7.4.3_amd64.deb
+sudo dpkg -i $workdir/tmp/grafana_7.4.3_amd64.deb
 sudo systemctl start grafana-server
 
-rm -r $workdir/tmp
+echo "Setup script completed."
