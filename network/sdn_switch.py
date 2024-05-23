@@ -149,7 +149,7 @@ class DynamicFirewall(app_manager.RyuApp):
 
         self.mac_to_port = {}
         self.monitor_thread = hub.spawn(self._monitor)
-        
+
         #testing purpose , to be deleted
         self.ssh_connections = {
             "10.0.1.1": { # Src IP
@@ -208,7 +208,7 @@ class DynamicFirewall(app_manager.RyuApp):
                 timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
                 msg = PORT_SSH_MSG % (src_ip, dst_ip, self.ssh_connections[src_ip][dst_ip], timestamp)
                 send_udp_message(msg)
-        
+
         for src_ip in self.port_scans:
             timestamp = int(datetime.datetime.now().timestamp() * 1000000000)
             msg = PORT_SCAN_MSG % (src_ip, self.port_scans[src_ip], timestamp)
@@ -223,7 +223,7 @@ class DynamicFirewall(app_manager.RyuApp):
             result_code = self.ping_log[src_ip]["result_code"]
             url = self.ping_log[src_ip]["URL"]
             host = src_ip
-            
+
             msg = PING_MSG % (host,url,packets_received,packets_transmitted,percent_packet_loss,result_code, timestamp)
             send_udp_message(msg)
 
@@ -691,7 +691,7 @@ class DynamicFirewall(app_manager.RyuApp):
                 self.port_scans[str(ip)] += 1
             else:
                 self.port_scans[str(ip)] = 1
-            
+
             if bannedRule is not None:
                 print("TCP port scan")
             duration = 30
@@ -755,20 +755,20 @@ class DynamicFirewall(app_manager.RyuApp):
                 "packets_transmitted": 0,
                 "percent_packet_loss": 0,
                 "result_code": 0,
-                "URL": "unknown" 
+                "URL": "unknown"
             }
 
             if str(ip) in self.ping_log:
-                self.ping_log[host_ip]["packets_received"] += 1  
+                self.ping_log[host_ip]["packets_received"] += 1
                 self.ping_log[host_ip]["packets_transmitted"] += 1
-                self.ping_log[host_ip]["result_code"] = _alert.result_code    
-                self.ping_log[host_ip]["URL"] = dest_ip  
+                self.ping_log[host_ip]["result_code"] = _alert.result_code
+                self.ping_log[host_ip]["URL"] = dest_ip
             else:
                if str(ip) in self.ping_log:
-                self.ping_log[host_ip]["packets_received"] = 1  
+                self.ping_log[host_ip]["packets_received"] = 1
                 self.ping_log[host_ip]["packets_transmitted"] = 1
-                self.ping_log[host_ip]["result_code"] = _alert.result_code   
-                self.ping_log[host_ip]["URL"] = dest_ip 
+                self.ping_log[host_ip]["result_code"] = _alert.result_code
+                self.ping_log[host_ip]["URL"] = dest_ip
         # ToDo needs testing , but msg is not working
         elif int(sid) == 1100020:  # Assuming 1100020 is the SID for HTTP response (log)
             print("HTTP Response (log)")
@@ -776,7 +776,7 @@ class DynamicFirewall(app_manager.RyuApp):
 
             src_ip = str(self.get_src_ip(_alert.pkt))
             dst_ip = str(self.get_dst_ip(_alert.pkt))
-        
+
             if src_ip not in self.http_response:
                 self.http_response[src_ip] = {}
 
@@ -785,10 +785,10 @@ class DynamicFirewall(app_manager.RyuApp):
             else:
                 # ToDo actual data needs to be used here and check if structure is okay
                 self.http_response[src_ip][dst_ip] = {
-                    "method": "GET",  
-                    "result": "connection_successful",  
-                    "result_code": _alert.result_code,  
-                    "result_type": "successful",  
+                    "method": "GET",
+                    "result": "connection_successful",
+                    "result_code": _alert.result_code,
+                    "result_type": "successful",
                     "server": dst_ip,
                 }
 
