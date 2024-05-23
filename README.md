@@ -206,9 +206,41 @@ pub1> curl 10.0.0.100:80/about
 pub1> curl 10.0.0.100:80/contact
 ```
 
+5. Generate random traffic in the network
+
+```bash
+mininet> xterm hi or pubi
+```
+
+```bash
+hi> source .venv/bin/activate
+```
+```bash
+hi> python3 RandomTraffic/randomTraffic.py
+```
+
+```bash
+pui> source .venv/bin/activate
+```
+```bash
+pui> python3 RandomTraffic/randomTraffic-public.py
+```
+
 ### Performing the attacks
 
-1. Port scanning
+1. Ping scan
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> python3 attacks/dos_icmp.py faster 10.0.3.1
+```
+```bash
+h1> python3 attacks/dos_icmp.py faster 10.0.2.1
+```
+
+2. Port scanning
 
 ```bash
 mininet> xterm h1
@@ -221,17 +253,28 @@ h1> python3 attacks/port_scanning.py 10.0.4.1 0 300
 h1> python3 attacks/port_scanning.py 10.0.4.1 10000 20000
 ```
 
-2. ICMP flooding
+3. SSH Bruteforce
+
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> telnet 10.0.4.1 2222
+h1> *Write random credentials to simulate bruteforce, after 5 attempts you will be blocked*
+```
+
+4. DoS
 ```bash
 mininet> xterm pub1 [pub2]
 ```
 
 ```bash
-pub1> python3 attacks/dos_icmp.py faster 10.0.3.1
+pub1> python3 attacks/dos_tcp.py faster 10.0.5.1
 ```
 
 ```bash
-pub2> python3 attacks/dos_icmp.py fast 10.0.3.1
+pub2> python3 attacks/dos_tcp.py fast 10.0.5.1
 ```
 
 
@@ -256,24 +299,24 @@ pub2> python3 attacks/dos_icmp.py fast 10.0.3.1
    | h1 : h4 : h7 |     +-+-+
    | h2 : h5 : h8 |     |ad |
    | h3 : h6 : h9 |     +---+
-   +--------------+  
+   +--------------+
 ```
 
 ### TODO List
 
-- [ ] Finish presentation
+- [x] Finish presentation
 - [x] Add Load balancer
 - [x] Add Monitoring
     - [x] ICMP requests
     - [x] TCP Port Scan
     - [x] SSH attempts
     - [x] HTTP requests
-- [ ] Add hacker script
-    - [ ] Ping
+- [x] Add hacker script
+    - [x] Ping
     - [x] Port scan
-    - [ ] SSH brute force
+    - [x] SSH brute force
     - [x] DoS
 - [x] Implement counter-measures of all the Snort's alerts
-- [ ] Add other users?
+- [x] Add other users?
 - [x] Configure [Custom Switch](/network/custom_switch.py) to monitor the network
 - [x] Expand the rules of [Snort Rules](/config/SDS-project_SnortRules.rules)
