@@ -151,36 +151,10 @@ class DynamicFirewall(app_manager.RyuApp):
         self.monitor_thread = hub.spawn(self._monitor)
 
         #testing purpose , to be deleted
-        self.ssh_connections = {
-            "10.0.1.1": { # Src IP
-                "10.0.2.1" : 1, # Dst IP
-                "10.0.1.2": 5,  # Dst IP
-            },
-            "10.0.2.1": {
-            }
-        }
-        self.port_scans = {
-            "10.0.1.4": {
-                "10.0.2.1": 5
-            }
-        }
-        self.ping_log = {
-            "10.0.1.1":{
-                "10.0.2.1": {
-                    "packets_received": 100, #packets received
-                    "packets_transmitted": 120, #packets transmitted
-                    "percent_packet_loss": 0, #packet loss
-                }
-            }
-        }
-        self.http_response = {
-            "10.0.1.1" : {
-                "10.0.3.2": {
-                    "packets_received": 100, #packets received
-                    "packets_transmitted": 120, #packets transmitted
-                }
-            }
-        }
+        self.ssh_connections = {}
+        self.port_scans = {}
+        self.ping_log = {}
+        self.http_response = {}
 
 
     ################################
@@ -474,7 +448,7 @@ class DynamicFirewall(app_manager.RyuApp):
                 return
             else:
                 self.add_flow(datapath, 1, match, actions)
-            delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 60))
+            delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 14))
             delayed_remove_flow_thread.start()
 
         # if ev.msg.datapath.id in [4, 10]:
@@ -569,7 +543,7 @@ class DynamicFirewall(app_manager.RyuApp):
         self.logger.info("<==== Added TCP Flow- Reverse route from Server: " + str(server_dst_ip) +
                          " to Client: " + str(src_mac) + " on Switch Port:" +
                          str(in_port) + "====>")
-        delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 15))
+        delayed_remove_flow_thread = Thread(target=self.delayed_remove_flow, args=(datapath, match, 16))
         delayed_remove_flow_thread.start()
 
     #################################
@@ -682,30 +656,12 @@ class DynamicFirewall(app_manager.RyuApp):
             ip = self.get_src_ip(_alert.pkt)
             bannedRule = self.ban_ip(ip, REST_NW_PROTO_TCP)
 
-            if not (str(ip) in self.port_scans):
-                self.port_scans[str(ip)] = {}
-
-            dst_ip = self.get_dst_ip(_alert.pkt)
-            if str(dst_ip) in self.port_scans[str(ip)]:
-                self.port_scans[str(ip)][str(dst_ip)] += 1
-            else:
-                self.port_scans[str(ip)][str(dst_ip)] = 1
-
             if bannedRule is not None:
                 print("TCP port scan")
             duration = 30
         elif int(sid) == 1100012: # TCP port scan (DMZ)
             ip = self.get_src_ip(_alert.pkt, REST_NW_PROTO_TCP)
             bannedRule = self.ban_ip(ip)
-
-            if not (str(ip) in self.port_scans):
-                self.port_scans[str(ip)] = {}
-
-            dst_ip = self.get_dst_ip(_alert.pkt)
-            if str(dst_ip) in self.port_scans[str(ip)]:
-                self.port_scans[str(ip)][str(dst_ip)] += 1
-            else:
-                self.port_scans[str(ip)][str(dst_ip)] = 1
 
             if bannedRule is not None:
                 print("TCP port scan (DMZ)")
@@ -740,8 +696,11 @@ class DynamicFirewall(app_manager.RyuApp):
             else:
                 self.ssh_connections[str(self.get_src_ip(_alert.pkt))][str(self.get_dst_ip(_alert.pkt))] = 1
         elif int(sid) == 1100018: # ICMP Ping (log)
-            src_ip = self.get_src_ip(_alert.pkt)
-            dst_ip = self.get_dst_ip(_alert.pkt)
+            try:
+                src_ip = self.get_src_ip(_alert.pkt)
+                dst_ip = self.get_dst_ip(_alert.pkt)
+            except:
+                return
 
             if str(src_ip) not in self.ping_log:
                 self.ping_log[src_ip] = {}
@@ -797,6 +756,17 @@ class DynamicFirewall(app_manager.RyuApp):
                     "packets_received": 1,
                     "packets_transmitted": 0
                 }
+        elif int(sid) == 1100020:  # TCP port scanning (log)
+            ip = self.get_src_ip(_alert.pkt)
+
+            if not (str(ip) in self.port_scans):
+                self.port_scans[str(ip)] = {}
+
+            dst_ip = self.get_dst_ip(_alert.pkt)
+            if str(dst_ip) in self.port_scans[str(ip)]:
+                self.port_scans[str(ip)][str(dst_ip)] += 1
+            else:
+                self.port_scans[str(ip)][str(dst_ip)] = 1
 
         elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
