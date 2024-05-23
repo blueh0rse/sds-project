@@ -118,7 +118,20 @@ mininet> h1 ping h2 -c 3
 ```
 
 ### TODO List
+
+- [ ] Finish presentation
+- [ ] Add Load balancer
+- [ ] Add Monitoring
+    - [ ] ICMP requests
+    - [ ] TCP Port Scan
+    - [ ] SSH attempts
+    - [ ] HTTP requests
+- [ ] Add hacker script
+    - [ ] Ping
+    - [ ] Port scan
+    - [ ] SSH brute force
+    - [ ] DoS
+- [ ] Implement counter-measures of all the Snort's alerts
+- [ ] Add other users?
 - [ ] Configure [Custom Switch](/network/custom_switch.py) to monitor the network
 - [ ] Expand the rules of [Snort Rules](/config/SDS-project_SnortRules.rules)
-- [ ] Implement counter-measures of all the Snort's alerts
-- [ ] etc...
