@@ -217,15 +217,15 @@ h1> python3 attacks/port_scanning.py 10.0.2.1 10000 20000
 
 2. ICMP flooding
 ```bash
-mininet> xterm pu1 [pu2]
+mininet> xterm pub1 [pub2]
 ```
 
 ```bash
-pu1> python3 attacks/dos_icmp.py faster 10.0.3.1
+pub1> python3 attacks/dos_icmp.py faster 10.0.3.1
 ```
 
 ```bash
-pu2> python3 attacks/dos_icmp.py fast 10.0.3.1
+pub2> python3 attacks/dos_icmp.py fast 10.0.3.1
 ```
 
 
