@@ -151,24 +151,24 @@ mininet> h1 ping h2 -c 3
 1. Start private server
 
 ```bash
-mininet> xterm pad
+mininet> xterm ad
 ```
 ```bash
-pad> python3 SimpleSSH/SimpleSSH.py 10.0.2.1 2222
+ad> python3 SimpleSSH/SimpleSSH.py 10.0.4.1 2222
 ```
 
 2. Start web servers
 
 ```bash
-mininet> xterm ws1 ws2
+mininet> xterm web1 web2
 ```
 
 ```bash
-ws1> python3 SimpleAPI/SimpleAPI.py 10.0.3.1
+web1> python3 SimpleAPI/SimpleAPI.py 10.0.3.1
 ```
 
 ```bash
-ws1> python3 SimpleAPI/SimpleAPI.py 10.0.3.2
+web2> python3 SimpleAPI/SimpleAPI.py 10.0.3.2
 ```
 
 3. Test private server
