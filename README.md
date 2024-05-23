@@ -167,9 +167,15 @@ ad> python3 SimpleSSH/SimpleSSH.py 10.0.4.1 2222
 ```bash
 mininet> xterm web1 web2
 ```
+```bash
+web1> source .venv/bin/activate
+```
 
 ```bash
 web1> python3 SimpleAPI/SimpleAPI.py 10.0.5.1
+```
+```bash
+web2> source .venv/bin/activate
 ```
 
 ```bash
