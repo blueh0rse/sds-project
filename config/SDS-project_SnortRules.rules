@@ -19,7 +19,7 @@ alert TCP any any -> 10.0.5.0/24 any (msg:"TCP port scan (DMZ) --- 1100012"; sid
 
 
 alert TCP 10.0.0.0/20 any   -> 10.0.4.0/24 2222 (msg:"SSH connection (log)  --- 1100013"; sid:1100013; classtype:tcp-connection;)
-alert TCP 10.0.0.0/20 any -> 10.0.4.0/24 2222 (msg:"SSH connection (attack) --- 1100014"; sid:1100014; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
+alert TCP 10.0.0.0/20 any -> 10.0.4.0/24 2222 (msg:"SSH connection (attack) --- 1100014"; sid:1100014; classtype:tcp-connection; detection_filter:track by_src, count 40, seconds 60;)
 
 
 alert ICMP any any -> 255.255.255.255/32 any (msg:"failed SSH connection retries --- 1100016"; sid:1100016; classtype:icmp-event; detection_filter:track by_src, count 5, seconds 60;)
