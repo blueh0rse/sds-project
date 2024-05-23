@@ -178,7 +178,7 @@ mininet> xterm h1
 ```
 
 ```bash
-h1> telnet 10.0.2.1 2222
+h1> telnet 10.0.4.1 2222
 telnet> admin
 telnet> admin
 ```
@@ -186,7 +186,7 @@ telnet> admin
 4. Test web servers
 
 ```bash
-mininet> xterm pu1
+mininet> xterm pub1
 ```
 
 ```bash
