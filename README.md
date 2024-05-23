@@ -143,19 +143,91 @@ Waiters updated!
 Waiters updated!
 ```
 
-### Network rules
+### Network test
 
-1. Start the controler using `ryu`
-
-```bash
-(.venv)$ sudo ryu-manager --verbose tools/ryu/ryu/app/simple_monitor_13.py
-```
-
-2. Test hosts can communicate
+1. Test hosts can communicate
 
 ```bash
 mininet> h1 ping h2 -c 3
 ```
+
+### Setup servers
+
+1. Start private server
+
+```bash
+mininet> xterm ad
+```
+```bash
+ad> python3 SimpleSSH/SimpleSSH.py 10.0.4.1 2222
+```
+
+2. Start web servers
+
+```bash
+mininet> xterm web1 web2
+```
+
+```bash
+web1> python3 SimpleAPI/SimpleAPI.py 10.0.5.1
+```
+
+```bash
+web2> python3 SimpleAPI/SimpleAPI.py 10.0.5.2
+```
+
+3. Test private server
+
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> telnet 10.0.4.1 2222
+telnet> admin
+telnet> admin
+```
+
+4. Test web servers
+
+```bash
+mininet> xterm pub1
+```
+
+```bash
+pub1> curl 10.0.0.100
+pub1> curl 10.0.0.100:80/about
+pub1> curl 10.0.0.100:80/contact
+```
+
+### Performing the attacks
+
+1. Port scanning
+
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> python3 attacks/port_scanning.py 10.0.2.1 0 300
+```
+```bash
+h1> python3 attacks/port_scanning.py 10.0.2.1 10000 20000
+```
+
+2. ICMP flooding
+```bash
+mininet> xterm pu1 [pu2]
+```
+
+```bash
+pu1> python3 attacks/dos_icmp.py faster 10.0.3.1
+```
+
+```bash
+pu2> python3 attacks/dos_icmp.py fast 10.0.3.1
+```
+
 
 ## Topology
 
@@ -183,8 +255,8 @@ mininet> h1 ping h2 -c 3
 
 ### TODO List
 
-- [] Finish presentation
-- [ ] Add Load balancer
+- [ ] Finish presentation
+- [x] Add Load balancer
 - [x] Add Monitoring
     - [x] ICMP requests
     - [x] TCP Port Scan

