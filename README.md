@@ -102,14 +102,33 @@ or
 
 ```bash
 mininet> net
-h1 h1-eth0:s1-eth1
-h2 h2-eth0:s1-eth2
-h3 h3-eth0:s1-eth3
-h4 h4-eth0:s1-eth5
-h5 h5-eth0:s2-eth2
-h6 h6-eth0:s2-eth3
-s1 lo:  s1-eth1:h1-eth0  s1-eth2:h2-eth0  s1-eth3:h3-eth0  s1-eth4:s2-eth1  s1-eth5:h4-eth0
-s2 lo:  s2-eth1:s1-eth4  s2-eth2:h5-eth0  s2-eth3:h6-eth0
+# VLAN 1 - users
+h1 h1-eth0:s2-eth1
+h2 h2-eth0:s2-eth2
+h3 h3-eth0:s2-eth3
+# VLAN 2 - workers
+h4 h4-eth0:s2-eth4
+h5 h5-eth0:s2-eth5
+h6 h6-eth0:s2-eth6
+# VLAN 3 - admins
+h7 h7-eth0:s2-eth7
+h8 h8-eth0:s2-eth8
+h9 h9-eth0:s2-eth9
+# VLAN 4 - AD
+ad ad-eth0:s3-eth1
+# VLAN 5 - web servers
+web1 web1-eth0:s10-eth1
+web2 web2-eth0:s10-eth2
+# VLAN 6 - internet
+pub1 pub1-eth0:s4-eth1
+pub2 pub2-eth0:s4-eth2
+# link(s)
+s1 lo:  s1-eth1:s10-eth3 s1-eth2:s2-eth10 s1-eth3:s3-eth2 s1-eth4:s4-eth3
+s2 lo:  s2-eth1:h1-eth0 s2-eth2:h2-eth0 s2-eth3:h3-eth0 s2-eth4:h4-eth0 s2-eth5:h5-eth0 s2-eth6:h6-eth0 s2-eth7:h7-eth0 s2-eth8:h8-eth0 s2-eth9:h9-eth0 s2-eth10:s1-eth2
+s3 lo:  s3-eth1:ad-eth0 s3-eth2:s1-eth3
+s4 lo:  s4-eth1:pub1-eth0 s4-eth2:pub2-eth0 s4-eth3:s1-eth4
+s10 lo:  s10-eth1:web1-eth0 s10-eth2:web2-eth0 s10-eth3:s1-eth1
+# controller(s)
 c0
 ```
 
