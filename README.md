@@ -138,15 +138,9 @@ c0
 (.venv)$ ./setup/config-network.sh
 ```
 
-### Network rules
+### Network test
 
-1. Start the controlet using `ryu`
-
-```bash
-(.venv)$ sudo ryu-manager --verbose tools/ryu/ryu/app/simple_monitor_13.py
-```
-
-2. Test hosts can communicate
+1. Test hosts can communicate
 
 ```bash
 mininet> h1 ping h2 -c 3
