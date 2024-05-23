@@ -152,6 +152,84 @@ c0
 mininet> h1 ping h2 -c 3
 ```
 
+### Setup servers
+
+1. Start private server
+
+```bash
+mininet> xterm pad
+```
+```bash
+pad> python3 SimpleSSH/SimpleSSH.py 10.0.2.1 2222
+```
+
+2. Start web servers
+
+```bash
+mininet> xterm ws1 ws2
+```
+
+```bash
+ws1> python3 SimpleAPI/SimpleAPI.py 10.0.3.1
+```
+
+```bash
+ws1> python3 SimpleAPI/SimpleAPI.py 10.0.3.2
+```
+
+3. Test private server
+
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> telnet 10.0.2.1 2222
+telnet> admin
+telnet> admin
+```
+
+4. Test web servers
+
+```bash
+mininet> xterm pu1
+```
+
+```bash
+pu1> curl 10.0.0.100
+pu1> curl 10.0.0.100:80/about
+pu1> curl 10.0.0.100:80/contact
+```
+
+### Performing the attacks
+
+1. Port scanning
+
+```bash
+mininet> xterm h1
+```
+
+```bash
+h1> python3 attacks/port_scanning.py 10.0.2.1 0 300
+```
+```bash
+h1> python3 attacks/port_scanning.py 10.0.2.1 10000 20000
+```
+
+2. ICMP flooding
+```bash
+mininet> xterm pu1 [pu2]
+```
+
+```bash
+pu1> python3 attacks/dos_icmp.py faster 10.0.3.1
+```
+
+```bash
+pu2> python3 attacks/dos_icmp.py fast 10.0.3.1
+```
+
+
 ### TODO List
 
 - [ ] Finish presentation
