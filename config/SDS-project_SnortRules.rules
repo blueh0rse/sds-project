@@ -8,10 +8,10 @@ alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (light
 alert ICMP 10.0.255.0/24 any -> 10.0.5.0/24 any (msg:"external ICMP flood (dst tracking) --- 1100006"; sid:1100006; classtype:icmp-event; detection_filter:track by_dst, count 500, seconds 40;)
 
 
-alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (light)        --- 1100007"; sid:1100007; classtype:tcp-connection; detection_filter:track by_src, count 300, seconds 1;)
-alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (medium)       --- 1100008"; sid:1100008; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
-alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (heavy)        --- 1100009"; sid:1100009; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
-alert TCP any any -> 10.0.5.0/24 80 (msg:"TCP flood (dst tracking) --- 1100010"; sid:1100010; classtype:tcp-connection; detection_filter:track by_dst, count 500, seconds 40;)
+alert TCP any any -> 10.0.0.100/32 80 (msg:"TCP flood (light)        --- 1100007"; sid:1100007; classtype:tcp-connection; detection_filter:track by_src, count 300, seconds 1;)
+alert TCP any any -> 10.0.0.100/32 80 (msg:"TCP flood (medium)       --- 1100008"; sid:1100008; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)
+alert TCP any any -> 10.0.0.100/32 80 (msg:"TCP flood (heavy)        --- 1100009"; sid:1100009; classtype:tcp-connection; detection_filter:track by_src, count 500, seconds 60;)
+alert TCP any any -> 10.0.0.100/32 80 (msg:"TCP flood (dst tracking) --- 1100010"; sid:1100010; classtype:tcp-connection; detection_filter:track by_dst, count 500, seconds 40;)
 
 
 alert TCP any any -> 10.0.4.0/24 any (msg:"TCP port scan       --- 1100011"; sid:1100011; classtype:tcp-connection; detection_filter:track by_src, count 400, seconds 5;)

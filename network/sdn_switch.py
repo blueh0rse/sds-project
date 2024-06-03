@@ -851,7 +851,7 @@ class DynamicFirewall(app_manager.RyuApp):
             if dst_mac in self.load_balancer_stats:
                 self.load_balancer_stats[dst_mac] += 1
 
-            print(self.load_balancer_stats)
+            # print(self.load_balancer_stats)
 
         elif int(sid) == 1110000: # Debugging
             ip = self.get_dst_ip(_alert.pkt)
